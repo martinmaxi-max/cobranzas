@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cobranzas CARMAR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root{
+  --bg:#F3F5F4; --panel:#FFFFFF; --ink:#18272A; --mute:#5F6E70; --line:#DCE2E0; --soft:#EAF0EE;
+  --accent:#0F5B66; --accent-ink:#FFFFFF;
+  --verde:#2E9E5B; --amarillo:#D9A700; --rojo:#C93A2F; --gris:#A8B3B1; --aldia:#A8B3B1; --azul:#2F6FD0;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  font-family:'Archivo',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; color:var(--ink); background:var(--bg);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --bg:#0F1718; --panel:#162224; --ink:#E4ECEA; --mute:#93A4A2; --line:#2A3A3C; --soft:#1D2D30; --accent:#4FB3BF; --accent-ink:#06282C; } }
+:root[data-theme="dark"]{ --bg:#0F1718; --panel:#162224; --ink:#E4ECEA; --mute:#93A4A2; --line:#2A3A3C; --soft:#1D2D30; --accent:#4FB3BF; --accent-ink:#06282C; }
+html{scroll-padding-top:env(safe-area-inset-top,0px)} *{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-size:14px;line-height:1.45;font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--panel);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;gap:16px;padding:12px 20px;flex-wrap:wrap}
+.brand{font-weight:800;font-size:18px;letter-spacing:-.01em}
+.brand small{font-weight:500;color:var(--mute);font-size:13px;margin-left:8px}
+#periodo input,#periodo select{padding:4px 8px}
+.lastimp{margin-left:auto;color:var(--mute);font-size:13px}
+nav{display:flex;gap:2px;padding:0 12px;overflow-x:auto}
+nav button{border:0;background:none;padding:10px 14px;border-bottom:3px solid transparent;color:var(--mute);font-weight:600;white-space:nowrap}
+nav button.on{color:var(--ink);border-color:var(--accent)}
+nav .n{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--soft);font-size:12px;color:var(--ink)}
+main{padding:20px;max-width:1400px;margin:0 auto}
+h2{font-size:22px;margin:0 0 4px;letter-spacing:-.01em} .sub{color:var(--mute);margin:0 0 16px;max-width:75ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel);padding:7px 12px;border-radius:7px;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.wa{background:#1F9D55;color:#fff;border-color:#1F9D55}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input[type=text],input[type=search],input[type=date],input[type=number],input[type=email],input[type=password],select,textarea{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:7px 10px}
+textarea{width:100%;resize:vertical}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.filters input[type=search]{min-width:240px;flex:1;max-width:360px}
+.chipsel button{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:5px 11px;font-weight:600;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.chipsel button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tblwrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:12px;color:var(--mute);font-weight:600;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);background:var(--soft);white-space:nowrap;cursor:pointer;user-select:none}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:hover{background:var(--soft)} tbody tr.click{cursor:pointer}
+td.num,th.num{text-align:right;white-space:nowrap}
+.nm{font-weight:600} .cod{color:var(--mute);font-size:12px}
+.mute{color:var(--mute)} .neg{color:var(--verde)} .small{font-size:12px}
+/* semáforo: la pieza distintiva — un portalámparas de 3 luces */
+.sema{display:inline-flex;flex-direction:column;gap:2px;padding:3px;border-radius:6px;background:#22302F;vertical-align:middle}
+.sema i{width:8px;height:8px;border-radius:50%;background:#3A4746}
+.sema.rojo i:nth-child(1){background:var(--rojo);box-shadow:0 0 6px var(--rojo)}
+.sema.amarillo i:nth-child(2){background:var(--amarillo);box-shadow:0 0 6px var(--amarillo)}
+.sema.verde i:nth-child(3){background:var(--verde);box-shadow:0 0 6px var(--verde)}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600;background:var(--soft);margin:1px 3px 1px 0;white-space:nowrap}
+.tag.warn{background:#F7E7C6;color:#6B4A00} .tag.bad{background:#F5D3CF;color:#7A1E15} .tag.ok{background:#D3EEDD;color:#14532D} .tag.info{background:#D6E4F7;color:#163E7A}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+.kpi{padding:14px 16px}
+.kpi .v{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.kpi .l{color:var(--mute);font-size:13px}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--soft);margin:10px 0 6px}
+.bar span{display:block;height:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute)} .legend b{color:var(--ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.list li{padding:6px 0;border-bottom:1px solid var(--line);list-style:none;display:flex;gap:8px;justify-content:space-between}
+.list{margin:0;padding:0}
+.drop{display:block;cursor:pointer;border:2px dashed var(--line);border-radius:12px;padding:40px 20px;text-align:center;background:var(--panel)}
+.drop.over{border-color:var(--accent);background:var(--soft)}
+.empty{padding:40px;text-align:center;color:var(--mute)}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,20,22,.35);z-index:40;display:none}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(760px,100%);background:var(--bg);z-index:41;transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer.open{transform:none} .scrim.open{display:block}
+@media (prefers-reduced-motion:reduce){.drawer{transition:none}}
+.dhead{background:var(--panel);padding:16px 20px;border-bottom:1px solid var(--line)}
+.dhead h3{margin:0;font-size:20px}
+.dtabs{display:flex;gap:2px;margin-top:10px;overflow-x:auto}
+.dbody{padding:16px 20px;overflow-y:auto;flex:1}
+.timeline{margin-top:14px}
+.ev{border-left:3px solid var(--line);padding:6px 0 12px 14px;position:relative}
+.ev.wa-in{border-color:#1F9D55} .ev.wa-out{border-color:var(--accent)} .ev.sys{border-color:var(--gris)}
+.ev .meta{font-size:12px;color:var(--mute)}
+.ev pre{white-space:pre-wrap;font-family:inherit;margin:4px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute);font-weight:600}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:10px}
+.toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;z-index:60;font-weight:600;display:none}
+.note{background:var(--soft);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--mute)}
+.msgprev{white-space:pre-wrap;font-size:13px;background:var(--soft);border-radius:8px;padding:8px 10px;max-width:70ch}
+.obs{margin-top:10px;padding:8px 12px;border-left:4px solid var(--amarillo);background:var(--soft);border-radius:0 8px 8px 0;font-size:14px;font-weight:500}
+.obs .l{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);font-weight:700;margin-bottom:1px}
+.obsline{font-size:12px;margin-top:3px;padding-left:7px;border-left:3px solid var(--amarillo);font-weight:500;max-width:60ch}
+.fgrid a,.list a{color:var(--accent)}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 16px;margin-top:10px;overflow-wrap:anywhere}
+td.selc,th.selc{width:36px;text-align:center}
+.selc{cursor:pointer;user-select:none;white-space:nowrap}
+.selc input{width:16px;height:16px;cursor:pointer;accent-color:var(--accent);vertical-align:middle}
+tbody tr.sel,tbody tr.sel:hover,.list li.sel{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.list li .selc{flex:none} .list li a{flex:1}
+.selbar{position:sticky;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:6;display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:calc(100% - 40px);max-width:1360px;margin:0 auto 12px;padding:10px 14px;border:2px solid var(--accent);border-radius:10px;background:var(--panel);box-shadow:0 6px 24px rgba(10,20,22,.18)}
+/* alerta de promesas incumplidas: visible en todas las pestañas */
+.alertwrap{max-width:1400px;margin:0 auto;padding:0 20px}
+.alerta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;width:100%;text-align:left;margin-top:14px;border:1px solid var(--rojo);border-left-width:6px;background:color-mix(in srgb,var(--rojo) 9%,var(--panel));border-radius:10px;padding:10px 14px}
+.albadge{min-width:28px;height:28px;border-radius:14px;background:var(--rojo);color:#fff;font-weight:800;display:inline-flex;align-items:center;justify-content:center;padding:0 8px}
+.alver{margin-left:auto;font-weight:700;color:var(--rojo);white-space:nowrap}
+.promal{color:var(--rojo);font-weight:700}
+.alerta.rev{border-color:var(--amarillo);background:color-mix(in srgb,var(--amarillo) 12%,var(--panel))} .alerta.rev .albadge{background:var(--amarillo);color:#2B2100} .alerta.rev .alver{color:var(--ink)}
+#quien input{padding:4px 8px;width:150px} #quien input.falta{border-color:var(--rojo)}
+.hrow{display:flex;gap:8px 16px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:13px} .hrow select{padding:4px 8px}
+td textarea{min-width:240px}
+.totline{display:flex;gap:4px 20px;flex-wrap:wrap;align-items:baseline;margin:0 0 10px}
+.totline b{font-size:16px}
+tfoot td{background:var(--soft);border-bottom:0;font-weight:600}
+.telin{width:128px;padding:4px 8px!important;font-size:13px} .telin.bad{border-color:var(--rojo)!important} input.falta{border-color:var(--rojo)!important}
+.tagbtn{border:0;cursor:pointer;font:inherit;font-size:12px;font-weight:600;margin-top:4px}
+.modal{position:fixed;inset:0;z-index:50;display:none;align-items:flex-start;justify-content:center;background:rgba(10,20,22,.45);padding:4vh 16px;overflow-y:auto}
+.modal.open{display:flex}
+.mbox{background:var(--bg);border:1px solid var(--line);border-radius:12px;width:min(880px,100%);overflow:hidden}
+.mbox .dhead{border-radius:12px 12px 0 0}
+.hidden{display:none!important}
+/* pantalla de ingreso: tapa la app hasta que el usuario entra y se cargan los datos */
+.gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.gatebox{width:100%;max-width:380px;padding:24px;display:flex;flex-direction:column;gap:14px}
+.gatebox .brand{font-size:22px} .gatebox label.f{display:flex;flex-direction:column;gap:4px} .gatebox input{width:100%}
+#gateForm{display:flex;flex-direction:column;gap:12px}
+</style>
+</head>
+<body>
+<div class="gate" id="gate"><div class="panel gatebox">
+  <div class="brand">Cobranzas<small> · CARMAR</small></div>
+  <div id="gateMsg" class="small mute" aria-live="polite">Conectando…</div>
+  <div id="gateForm" class="hidden">
+    <label class="f">Mail<input type="email" id="lgMail" autocomplete="username"></label>
+    <label class="f">Contraseña<input type="password" id="lgPass" autocomplete="current-password"></label>
+    <div class="row"><button class="btn pri" id="lgOk">Entrar</button><button class="btn" id="lgReset">Olvidé mi contraseña</button></div>
+    <div id="lgErr" class="small" style="color:var(--rojo)" aria-live="polite"></div>
+  </div>
+  <div id="gateOut" class="hidden"><button class="btn" id="lgSalir">Salir</button></div>
+</div></div>
+<header>
+  <div class="top"><div class="brand">Cobranzas<small id="empresaLbl"></small></div><div class="row small" id="periodo" style="gap:6px"></div><div class="row small" id="quien" style="gap:6px"></div><div class="lastimp"><span id="lastImp"></span><span id="saved"></span></div></div>
+  <nav id="nav">
+    <button data-t="resumen" class="on">Resumen</button>
+    <button data-t="cobranza">A cobrar<span class="n" id="nCob">0</span></button>
+    <button data-t="depurar">Depurar<span class="n" id="nDep">0</span></button>
+    <button data-t="acuerdos">Acuerdos especiales<span class="n" id="nAcu">0</span></button>
+    <button data-t="wa">Mensajes WhatsApp</button>
+    <button data-t="importar">Importar Excel</button>
+    <button data-t="ajustes">Ajustes</button>
+  </nav>
+</header>
+<div class="alertwrap" id="alertas" aria-live="polite"></div>
+<main id="main"></main>
+<div class="selbar hidden" id="selbar" aria-live="polite"></div>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Ficha de cliente"></aside>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Envío por WhatsApp"></div>
+<div class="toast" id="toast"></div>
+<script>
+// ===== CORE (lógica pura, sin DOM) =====
+const ESTADOS = ['Sin gestionar','Mensaje enviado','En conversación','Promesa de pago','Pagó parcial','No responde','En disputa','Derivar a vendedor','Cancelado'];
+const ESTADOS_DEP = ['Pendiente','Pedido de ajuste','Resuelto'];
+
+// Mensajes por defecto. PLANT_V1 son los textos de la versión anterior: si nadie los tocó, se actualizan solos a los nuevos.
+const PLANT={
+  preventivo:'Hola {cliente}, te escribe {gestor} de {empresa}. Te pasamos el estado de tu cuenta, con comprobantes próximos a vencer:\n{detalle}\nCualquier consulta, estamos a disposición. ¡Gracias!',
+  recordatorio:'Hola {cliente}, ¿cómo estás? Te escribe {gestor} de {empresa}. Te pasamos el estado de tu cuenta: hay {vencido} vencido.\n{detalle}\n¿Nos confirmás cuándo podés regularizarlo? Gracias.',
+  reclamo:'Hola {cliente}. Te escribe {gestor}, de la administración de {empresa}. Necesitamos regularizar tu cuenta: hay {vencido} vencido, con hasta {dias} días de atraso.\n{detalle}\nPor favor comunicate hoy para acordar la forma de pago.',
+  promesa:'Hola {cliente}. Te escribe {gestor} de {empresa}: habíamos acordado un pago para el {promesa} y todavía no lo vemos acreditado.\n{detalle}\n¿Nos confirmás hoy cuándo lo realizás? Gracias.'
+};
+const PLANT_V1={
+  preventivo:'Hola {cliente}! Te escribimos de {empresa}. Te recordamos que tenés comprobantes por {saldo} con vencimiento próximo:\n{detalle}\nCualquier consulta, estamos a disposición. ¡Gracias!',
+  recordatorio:'Hola {cliente}, ¿cómo estás? Desde {empresa} te contamos que hay {vencido} vencido hace {dias} días:\n{detalle}\n¿Nos confirmás cuándo podés regularizarlo? Gracias.',
+  reclamo:'Hola {cliente}. Desde la administración de {empresa} necesitamos regularizar el saldo vencido de {vencido} (hasta {dias} días de atraso):\n{detalle}\nPor favor comunicate hoy para acordar la forma de pago.',
+  promesa:'Hola {cliente}. Te escribimos de {empresa}: habíamos acordado un pago para el {promesa} y todavía no lo vemos acreditado.\n{detalle}\n¿Nos confirmás hoy cuándo lo realizás? Gracias.'
+};
+function defaultState(){
+  return {
+    v:1,
+    // sa/sr: días vencido desde los que la cuenta pasa a amarillo y a rojo (por debajo es verde) · pie: texto al final de cada mensaje
+    config:{ desde:'2026-01-01', hasta:'', sa:30, sr:60, semV:2, promDias:2, residuo:10, empresa:'CARMAR', usuario:'', gestores:[], condV:2, pie:'' },
+    comps:{}, clientes:{}, gest:{}, imports:[],
+    plantillas:Object.assign({},PLANT)
+  };
+}
+
+const SAN=/[.$#\[\]\/\x00-\x1f\x7f]/g; // caracteres prohibidos en claves de Firebase
+const normH = h => String(h||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+function serialToISO(v, SSF){
+  if(v===null||v===undefined||v==='') return '';
+  if(typeof v==='number'){ const p=SSF.parse_date_code(v); if(!p) return ''; return `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`; }
+  if(v instanceof Date){ return `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`; }
+  const s=String(v).trim(); let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if(m){ let y=+m[3]; if(y<100)y+=2000; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); return m? m[0] : '';
+}
+const num = v => { if(typeof v==='number') return v; const s=String(v||'').replace(/\./g,'').replace(',','.'); const n=parseFloat(s); return isNaN(n)?0:n; };
+
+// Lee el Excel y devuelve filas normalizadas
+function leerHoja(XLSX, buf){
+  const wb = XLSX.read(buf,{type:'array',cellFormula:false,cellHTML:false,cellText:false,cellStyles:false});
+  const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:''});
+  if(!aoa.length) throw new Error('La hoja está vacía.');
+  return aoa;
+}
+// Reconoce el archivo por sus columnas: listado semanal de cobranzas o nómina de clientes
+function tipoArchivo(aoa){
+  const H=aoa[0].map(normH);
+  if(H.includes('CODCLIENT')&&H.includes('RAZONSOCI')) return 'nomina';
+  if(H.includes('CODCLI')&&H.includes('FECHAEMI')) return 'cobranzas';
+  return '';
+}
+function parseWorkbook(XLSX, buf){ return parseCobranzas(XLSX, leerHoja(XLSX,buf)); }
+function parseCobranzas(XLSX, aoa){
+  const H = aoa[0].map(normH);
+  const col = n => H.indexOf(n);
+  const need = ['FECHAEMI','CODCLI','RAZONSOC','TCOMP','NCOMP','IMPORTE'];
+  const faltan = need.filter(n=>col(n)<0);
+  if(faltan.length) throw new Error('Faltan columnas: '+faltan.join(', '));
+  const c = { vto:col('FECHAVTO'), emi:col('FECHAEMI'), cli:col('CODCLI'), rs:col('RAZONSOC'), dom:col('DOMICILIO'), loc:col('LOCALIDAD'),
+    t1:col('TELEFONO1'), t2:col('TELEFONO2'), prov:col('NOMPROVI'), tipo:col('TCOMP'), nro:col('NCOMP'), impv:col('IMPVTO'), imp:col('IMPORTE'), vend:col('CODVEND') };
+  const g = (r,i)=> i<0? '' : r[i];
+  const rows=[];
+  for(let i=1;i<aoa.length;i++){
+    const r=aoa[i]; const cli=String(g(r,c.cli)).trim().replace(SAN,'_'); if(!cli) continue;
+    const tipo=String(g(r,c.tipo)).trim(), nro=String(g(r,c.nro)).trim();
+    rows.push({
+      k: (cli+'|'+tipo+'|'+nro).replace(SAN,'_'), cli, tipo, nro,
+      emi: serialToISO(g(r,c.emi),XLSX.SSF), vto: serialToISO(g(r,c.vto),XLSX.SSF),
+      imp: Math.round(num(g(r,c.imp))*100)/100, impVto: Math.round(num(g(r,c.impv))*100)/100,
+      vend: String(g(r,c.vend)).trim(),
+      _cli:{ cod:cli, nombre:String(g(r,c.rs)).trim(), dom:String(g(r,c.dom)).trim(), loc:String(g(r,c.loc)).trim(),
+        prov:String(g(r,c.prov)).trim(), tel1:String(g(r,c.t1)).trim(), tel2:String(g(r,c.t2)).trim(), vend:String(g(r,c.vend)).trim() }
+    });
+  }
+  return rows;
+}
+
+// Lee la nómina de clientes (ficha completa). Devuelve una ficha compacta por código.
+// n razón social · t1/t2 teléfonos · obs observaciones (cómo opera) · em email · ct/tc/cc/ec/oc contacto · cuit · nc nombre comercial · cv cond. venta · iva · inh fecha inhabilitación · dup otros códigos con el mismo CUIT
+function parseNomina(aoa, SSF){
+  const H=aoa[0].map(normH), col=n=>H.indexOf(n), pre=n=>H.findIndex(h=>h.startsWith(n));
+  const ci=col('CODCLIENT');
+  if(ci<0||col('RAZONSOCI')<0) throw new Error('No parece la nómina de clientes: faltan las columnas COD_CLIENT o RAZON_SOCI.');
+  const M={n:col('RAZONSOCI'),t1:col('TELEFONO1'),t2:col('TELEFONO2'),obs:pre('OBSERVACI'),em:col('EMAIL'),ct:col('NOMCONTAC'),tc:col('TELCONTAC'),
+    cc:col('CARGOCONT'),ec:col('EMAILCONT'),oc:col('OBSCONTAC'),cuit:col('IDENTIFTRI'),nc:col('NOMCOMERC'),cv:col('CONDVTA'),iva:col('TIPOIVA')};
+  const ih=col('FECHAINHA'), txt=v=>String(v??'').replace(/[\u0000-\u001f]/g,' ').replace(/\s+/g,' ').trim();
+  const fichas={}, noUsar=f=>/no usar/i.test(f.n||''); let repetidos=0;
+  for(let i=1;i<aoa.length;i++){
+    const r=aoa[i], cod=txt(r[ci]).replace(SAN,'_'); if(!cod) continue;
+    const f={}; for(const k in M){ if(M[k]<0) continue; const v=txt(r[M[k]]); if(v) f[k]=v; }
+    if(ih>=0){ const d=serialToISO(r[ih],SSF); if(d) f.inh=d; }
+    if(f.nc&&f.nc===f.n) delete f.nc;
+    if(fichas[cod]){ repetidos++; if(noUsar(f)||!noUsar(fichas[cod])) continue; } // código repetido: gana la fila que no dice "no usar"
+    fichas[cod]=f;
+  }
+  const by={};
+  for(const cod in fichas){ const d=(fichas[cod].cuit||'').replace(/\D/g,''); if(d.length===11&&!/^0+$/.test(d.slice(2,10))&&!/^(\d)\1+$/.test(d.slice(2,10))) (by[d]=by[d]||[]).push(cod); }
+  for(const d in by) if(by[d].length>1&&by[d].length<=6) by[d].forEach(c=>{ fichas[c].dup=by[d].filter(x=>x!==c); });
+  const cods=Object.keys(fichas);
+  return {fichas, total:cods.length, conObs:cods.filter(c=>fichas[c].obs).length, repetidos};
+}
+const fichaDe=(F,cod)=>F[cod]||F[String(cod).replace(/^0+(?=.)/,'')]||null;
+
+// Cruza la nómina con los clientes que hoy tienen comprobantes en el listado. No modifica nada.
+function resumenNomina(state, fichas, prev, hoyISO){
+  const A=analizar(state,hoyISO);
+  const r={enListado:0,conFicha:0,conObs:0,sinFicha:[],celAntes:0,celDespues:0,sinTelAntes:0,sinTelDespues:0,ganan:[],inh:[],dup:[],obsCambian:0};
+  for(const cod in A){
+    r.enListado++;
+    const c=state.clientes[cod]||{}, f=fichaDe(fichas,cod), man=(state.gest[cod]||{}).wa, a=mejorTel(c,null,man), d=mejorTel(c,f,man);
+    if(f){ r.conFicha++; if(f.obs) r.conObs++; if(f.inh&&A[cod].saldoTotal>0) r.inh.push(cod); if(f.dup) r.dup.push(cod);
+      const p=fichaDe(prev||{},cod); if(p&&(p.obs||'')!==(f.obs||'')) r.obsCambian++; }
+    else r.sinFicha.push(cod);
+    if(a&&a.tipo==='cel') r.celAntes++; if(d&&d.tipo==='cel') r.celDespues++;
+    if(!a) r.sinTelAntes++; if(!d) r.sinTelDespues++;
+    if((!a||a.tipo!=='cel')&&d&&d.tipo==='cel') r.ganan.push(cod);
+  }
+  return r;
+}
+
+// Compara el Excel nuevo con lo guardado. No toca gestiones.
+function diffImport(state, rows){
+  const seen=new Set(), nuevos=[], cambiados=[]; let iguales=0;
+  for(const r of rows){
+    if(seen.has(r.k)) continue; seen.add(r.k);
+    const old=state.comps[r.k];
+    if(!old || !old.activo) nuevos.push(r);
+    else if(old.imp!==r.imp || old.vto!==r.vto) cambiados.push({r, antes:old.imp});
+    else iguales++;
+  }
+  const saldados = Object.values(state.comps).filter(c=>c.activo && !seen.has(c.k));
+  const clientesNuevos = new Set(nuevos.map(r=>r.cli).filter(c=>!state.clientes[c])).size;
+  return {nuevos, cambiados, saldados, iguales, clientesNuevos, total:seen.size};
+}
+
+function applyImport(state, rows, diff, archivo, hoyISO){
+  for(const r of rows){
+    state.clientes[r.cli] = Object.assign(state.clientes[r.cli]||{}, r._cli);
+    const old = state.comps[r.k];
+    const base = {k:r.k, cli:r.cli, tipo:r.tipo, nro:r.nro, emi:r.emi, vto:r.vto, imp:r.imp, impVto:r.impVto, vend:r.vend, activo:true, lastSeen:hoyISO};
+    if(old){
+      if(old.activo && old.imp!==r.imp){ (old.hist=old.hist||[]).push({f:hoyISO, de:old.imp, a:r.imp}); }
+      Object.assign(old, base); delete old.removedAt;
+    } else state.comps[r.k] = Object.assign(base,{firstSeen:hoyISO});
+  }
+  for(const c of diff.saldados){ const x=state.comps[c.k]; if(x){ x.activo=false; x.removedAt=hoyISO; } }
+  state.imports.unshift({fecha:hoyISO, archivo, nuevos:diff.nuevos.length, cambiados:diff.cambiados.length, saldados:diff.saldados.length, total:diff.total});
+}
+
+function periodo(cfg){ return {desde:cfg.desde||cfg.corte||'2026-01-01', hasta:cfg.hasta||''}; }
+function diasEntre(aISO,bISO){ return Math.round((Date.parse(bISO+'T12:00:00')-Date.parse(aISO+'T12:00:00'))/864e5); }
+
+// Semáforo por días de atraso: amarillo desde cfg.sa días vencido, rojo desde cfg.sr. Todo lo demás con deuda es verde (al día o vencido reciente).
+function semDe(dias, cfg){ return dias>=(cfg.sr??60)?'rojo': dias>=(cfg.sa??30)?'amarillo':'verde'; }
+function sumarDias(iso,n){ const d=new Date(Date.parse(iso+'T12:00:00')+n*864e5); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+// Desde cuándo se cobra un comprobante. Por defecto, el vencimiento que trae el archivo de Tango.
+// Solo si al cliente se le modificó la condición en la app: 'dias' a N días de la fecha de factura · 'mes' al cierre del mes de la factura · 'fecha' desde una fecha fija
+function exigible(i, r){
+  const rg=r&&r.regla; if(rg==='fecha'&&r.fecha) return r.fecha;
+  if(!rg||rg==='vto'||rg==='fecha'||!i.emi) return i.vto||i.emi||'';
+  if(rg==='mes'){ const y=+i.emi.slice(0,4), m=+i.emi.slice(5,7); return `${i.emi.slice(0,8)}${String(new Date(y,m,0).getDate()).padStart(2,'0')}`; }
+  if(rg==='dias') return sumarDias(i.emi, +r.dias||0);
+  return i.vto||i.emi;
+}
+
+// Calcula la foto de cada cliente. condDe(cod) devuelve la condición de pago modificada en la app para ese cliente (o nada: se usa el vencimiento de Tango).
+function analizar(state, hoyISO, condDe){
+  const cfg=state.config, by={}, P=periodo(cfg);
+  for(const c of Object.values(state.comps)){ if(!c.activo) continue; (by[c.cli]=by[c.cli]||[]).push(c); }
+  const out={};
+  for(const cod in by){
+    const items=by[cod].sort((a,b)=>a.emi<b.emi?-1:1), gs=state.gest[cod]||{}, cond=condDe?condDe(cod):null;
+    // Si en Depurar se marcó "pasar a cobrar", la deuda anterior al período se cobra junto con el resto
+    const inc=!!(gs.dep&&gs.dep.cobrar), enPer=i=>(inc||i.emi>=P.desde)&&(!P.hasta||i.emi<=P.hasta);
+    const nuevos=items.filter(enPer), viejos=inc?[]:items.filter(i=>i.emi<P.desde), posteriores=P.hasta?items.filter(i=>i.emi>P.hasta):[];
+    const sum=a=>a.reduce((s,i)=>s+i.imp,0);
+    const deudaNueva=nuevos.filter(i=>i.imp>0), credNuevos=nuevos.filter(i=>i.imp<0);
+    const ex={}, incl=cond&&(cond.regla==='mes'||cond.regla==='fecha'); // al cierre de mes o con fecha fija, se cobra desde ese mismo día
+    deudaNueva.forEach(i=>{ ex[i.k]=exigible(i,cond); });
+    const vencidos=deudaNueva.filter(i=>ex[i.k] && (incl? ex[i.k]<=hoyISO : ex[i.k]<hoyISO)), noVenc=deudaNueva.filter(i=>!vencidos.includes(i));
+    const diasMax=vencidos.reduce((m,i)=>Math.max(m,diasEntre(ex[i.k],hoyISO)),0);
+    const saldoNuevo=sum(nuevos);
+    let sem='none';
+    if(sum(deudaNueva)>0) sem=semDe(diasMax,cfg);
+    const flags=[];
+    if(!nuevos.length && !posteriores.length) flags.push('soloViejos');
+    if(viejos.some(i=>i.imp<0 && Math.abs(i.imp)>=cfg.residuo)) flags.push('credViejos');
+    if(viejos.some(i=>i.imp>0 && i.imp>=cfg.residuo)) flags.push('deudaVieja');
+    if(items.some(i=>Math.abs(i.imp)<cfg.residuo)) flags.push('residuos');
+    if(sum(items)<0) flags.push('aFavor');
+    if(nuevos.length && deudaNueva.length && items.some(i=>i.imp<=-cfg.residuo)) flags.push('imputar');
+    const proxVto = noVenc.map(i=>ex[i.k]).filter(Boolean).sort()[0]||'';
+    out[cod]={cod, items, nuevos, viejos, posteriores, saldoNuevo, deudaNueva:sum(deudaNueva), credNuevos:sum(credNuevos), vencido:sum(vencidos), aVencer:sum(noVenc),
+      vencidos, noVenc, ex, cond, diasMax, sem, flags, saldoTotal:sum(items), saldoViejo:sum(viejos), proxVto,
+      incViejos: inc && items.some(i=>i.emi<P.desde && i.imp>0), // trae deuda anterior al período, ya revisada
+      excl:!!gs.excl}; // acuerdo especial: no entra en la cobranza
+  }
+  return out;
+}
+
+// Teléfonos. Los campos del sistema son texto libre ("4232957  155044500 PATRICIA"), así que se extraen todos los números que haya.
+// Formato wa.me: 549 + 10 dígitos. Asume característica 264 si el número viene local.
+// tipo: 'cel' (celular), 'dudoso' (43x/49x sin 15: puede ser fijo), 'fijo' (42x sin 15: línea fija de San Juan)
+function telsDe(raw, area='264'){
+  const out=[], seen=new Set();
+  const uno=p=>{
+    let d=String(p).replace(/\D/g,''), movil=false;
+    if(d.length<7) return null;
+    if(d.startsWith('00')) d=d.slice(2);
+    if(d.startsWith('549')&&d.length===13){ d=d.slice(3); movil=true; }
+    else if(d.startsWith('54')&&d.length===12) d=d.slice(2);
+    if(d.startsWith('0')) d=d.slice(1);
+    if(d.length===12){ const k=(d.startsWith('11')&&d.substr(2,2)==='15')?2: d.substr(3,2)==='15'?3: d.substr(4,2)==='15'?4:-1; if(k>0){ d=d.slice(0,k)+d.slice(k+2); movil=true; } }
+    if(d.length===9&&d.startsWith('15')){ d=area+d.slice(2); movil=true; }
+    if(d.length===7) d=area+d;
+    if(d.length!==10||/^(\d)\1+$/.test(d.slice(3))) return null;
+    let tipo='cel';
+    if(!movil&&d.startsWith(area)){ const p2=d.substr(area.length,2); tipo= p2==='42'?'fijo': (p2==='43'||p2==='49')?'dudoso':'cel'; }
+    const ac=d.startsWith('11')?2:3;
+    return {wa:'549'+d, ver:d.slice(0,ac)+' '+d.slice(ac), tipo, verificar:tipo!=='cel'};
+  };
+  const push=t=>{ if(!t) return false; if(!seen.has(t.wa)){ seen.add(t.wa); out.push(t); } return true; };
+  for(const pieza of String(raw||'').split(/[\/,;:|]|[^\d\s\-.()+]+/)){
+    const s=pieza.trim(); if(!s) continue;
+    const tk=s.split(/\s+/); let hubo=false;
+    for(let i=0;i<tk.length;i++){
+      let junto=false; // "264 4123456", "154 553989", "+54 9 264 4123456": característica y número separados por espacios
+      for(let n=Math.min(4,tk.length-i); n>=2&&!junto; n--){
+        if(!tk.slice(i,i+n-1).every(x=>{const l=x.replace(/\D/g,'').length; return l>=1&&l<=4;})) continue;
+        const t=uno(tk.slice(i,i+n).join('')); if(t){ push(t); hubo=true; i+=n-1; junto=true; }
+      }
+      if(junto) continue;
+      if(push(uno(tk[i]))){ hubo=true; continue; }
+      if(tk[i].includes('-')) tk[i].split('-').forEach(x=>{ if(push(uno(x))) hubo=true; });
+    }
+    if(!hubo&&tk.length>1) push(uno(s));
+  }
+  return out;
+}
+const RANK_TEL={cel:3,dudoso:2,fijo:1};
+const mejorDe=L=>L.reduce((b,t)=>!b||RANK_TEL[t.tipo]>RANK_TEL[b.tipo]?t:b,null);
+function normTel(raw, area='264'){ return mejorDe(telsDe(raw,area)); }
+// Todos los teléfonos de un cliente: los del listado de cobranzas y los de la nómina, sin repetir
+function candsTel(cli, f){
+  const L=[], seen=new Set();
+  const add=(raw,src)=>{ if(!raw) return; telsDe(raw).forEach(t=>{ if(!seen.has(t.wa)){ seen.add(t.wa); L.push(Object.assign(t,{src,raw:String(raw).trim()})); } }); };
+  cli=cli||{}; f=f||{};
+  add(cli.tel1,'Listado de cobranzas'); add(cli.tel2,'Listado de cobranzas');
+  add(f.t1,'Nómina · teléfono 1'); add(f.t2,'Nómina · teléfono 2'); add(f.ct,'Nómina · contacto'); add(f.tc,'Nómina · contacto');
+  return L;
+}
+// El número que se usa para WhatsApp: el cargado a mano si existe; si no, el mejor candidato (celular antes que fijo)
+function mejorTel(cli, f, manual){
+  if(manual){ const t=normTel(manual); if(t) return Object.assign(t,{tipo:'cel',verificar:false,src:'Cargado a mano'}); }
+  return mejorDe(candsTel(cli,f));
+}
+
+// Arma el mensaje con TODA la deuda del cliente: lo vencido y lo que está por vencer, cada bloque con su subtotal, y el total al final.
+function armarMensaje(tpl, cli, a, empresa, fmt, extra){
+  const x=extra||{}, f=iso=>iso?iso.split('-').reverse().join('/'):'', ex=a.ex||{}, MAXL=8, Ve=a.vencidos, Nv=a.noVenc||[], L=[];
+  const lin=(arr,pal)=>{ const o=arr.slice(0,MAXL).map(i=>`• ${i.tipo} ${i.nro} — ${pal} ${f(ex[i.k]||i.vto)} — ${fmt(i.imp)}`); if(arr.length>MAXL) o.push(`… y ${arr.length-MAXL} comprobante(s) más`); return o; };
+  if(Ve.length&&Nv.length) L.push('VENCIDO', ...lin(Ve,'venció'), `Subtotal vencido: ${fmt(a.vencido)}`, '', 'A VENCER', ...lin(Nv,'vence'), `Subtotal a vencer: ${fmt(a.deudaNueva-a.vencido)}`, '');
+  else L.push(...lin(Ve.length?Ve:Nv, Ve.length?'venció':'vence'));
+  const cred=-(a.credNuevos||0), total=cred>=1?Math.max(0,a.deudaNueva-cred):a.deudaNueva;
+  if(cred>=1) L.push(`Pagos o créditos a cuenta sin aplicar: -${fmt(cred)}`);
+  L.push(`${cred>=1?'TOTAL A PAGAR':'TOTAL DE LA DEUDA'}: ${fmt(total)}`);
+  const V={cliente:cli.nombre||'', empresa:empresa||'', gestor:x.gestor||'', saldo:fmt(total), total:fmt(total), vencido:fmt(a.vencido), dias:String(a.diasMax), promesa:x.promesa||'', detalle:L.join('\n')};
+  const msg=tpl.replace(/\{(cliente|empresa|gestor|saldo|total|vencido|dias|promesa|detalle)\}/g, (m,k)=>V[k]);
+  return x.pie? msg+'\n\n'+x.pie : msg;
+}
+
+// Procesa el Excel semanal sobre una copia del estado y devuelve qué pasó con cada cliente.
+function procesarImport(state, rows, archivo, hoyISO){
+  const T=JSON.parse(JSON.stringify(state));
+  const primera=Object.keys(T.comps).length===0;
+  const diff=diffImport(T,rows), antes=analizar(T,hoyISO);
+  applyImport(T,rows,diff,archivo,hoyISO);
+  const desp=analizar(T,hoyISO);
+  const porCli={}, add=(cli,k,x)=>{(porCli[cli]=porCli[cli]||{salen:[],entran:[],cambian:[]})[k].push(x)};
+  if(!primera){ diff.saldados.forEach(c=>add(c.cli,'salen',c)); diff.nuevos.forEach(r=>{ if(state.clientes[r.cli]) add(r.cli,'entran',r); }); diff.cambiados.forEach(x=>add(x.r.cli,'cambian',x)); }
+  const ev={depResueltas:[],depParciales:[],nuevasDep:[],canceladas:[],reactivadas:[],marcadosQueSiguen:[],conCambios:Object.keys(porCli)};
+  const g=cod=>T.gest[cod]||(T.gest[cod]={estado:'Sin gestionar',log:[],promesa:null,dep:{estado:'Pendiente',nota:''},wa:''});
+  const now=new Date().toISOString(); let seq=0; const log=(cod,texto)=>g(cod).log.push({id:Date.now()+'_'+(seq++),f:now,tipo:'Sistema',texto,usuario:'',auto:true});
+  const $n=n=>'$'+Math.round(n).toLocaleString('es-AR'), li=c=>`• ${c.tipo} ${c.nro} ${$n(c.imp)}`;
+  if(!primera){
+    for(const cod in antes){ const a=antes[cod], d=desp[cod];
+      if(a.flags.length && (!d||!d.flags.length)) ev.depResueltas.push(cod);
+      else if(d && d.flags.length && a.viejos.length>d.viejos.length) ev.depParciales.push(cod);
+      if(a.deudaNueva>0 && (!d||d.deudaNueva<=0)) ev.canceladas.push(cod);
+    }
+    for(const cod in desp){ const d=desp[cod], a=antes[cod];
+      if(d.flags.length && (!a||!a.flags.length)) ev.nuevasDep.push(cod);
+      if(d.flags.length && T.gest[cod] && T.gest[cod].dep && T.gest[cod].dep.estado==='Resuelto') ev.marcadosQueSiguen.push(cod);
+      if(d.deudaNueva>0 && T.gest[cod] && T.gest[cod].estado==='Cancelado') ev.reactivadas.push(cod);
+    }
+    for(const cod in porCli){ const p=porCli[cod], L=[];
+      if(p.salen.length) L.push(`Salieron ${p.salen.length} comprobante(s) (cobrados, imputados o anulados):\n`+p.salen.slice(0,10).map(li).join('\n'));
+      if(p.entran.length) L.push(`Entraron ${p.entran.length} comprobante(s) nuevo(s):\n`+p.entran.slice(0,10).map(li).join('\n'));
+      if(p.cambian.length) L.push(`Cambió el importe de ${p.cambian.length}:\n`+p.cambian.slice(0,10).map(x=>`• ${x.r.tipo} ${x.r.nro} ${$n(x.antes)} → ${$n(x.r.imp)}`).join('\n'));
+      log(cod,`Actualización con ${archivo}\n`+L.join('\n'));
+    }
+    ev.depResueltas.forEach(cod=>{ const G=g(cod); G.dep=Object.assign({},G.dep,{estado:'Resuelto',resueltoEn:hoyISO,auto:true}); log(cod,'Depuración resuelta: el Excel ya no trae comprobantes viejos ni créditos pendientes de este cliente.'); });
+    ev.nuevasDep.forEach(cod=>{ const G=g(cod); if(G.dep&&G.dep.estado==='Resuelto'){ G.dep=Object.assign({},G.dep,{estado:'Pendiente',auto:false}); delete G.dep.resueltoEn; log(cod,'Volvió a depuración: aparecieron comprobantes para revisar.'); } });
+    ev.canceladas.forEach(cod=>{ const G=g(cod), pr=G.promesa; G.estado='Cancelado'; G.promesa=null; log(cod,'Cuenta del período cancelada: no quedan facturas pendientes.'+(pr&&pr.fecha?` Había promesa de pago para el ${pr.fecha.split('-').reverse().join('/')}.`:'')); });
+    ev.reactivadas.forEach(cod=>{ g(cod).estado='Sin gestionar'; log(cod,'Volvió a tener deuda: entraron facturas nuevas.'); });
+  }
+  T.imports[0].eventos={depResueltas:ev.depResueltas.length,canceladas:ev.canceladas.length,nuevasDep:ev.nuevasDep.length,conCambios:ev.conCambios.length};
+  return {T,diff,ev,porCli,primera};
+}
+// ===== FIN CORE =====
+
+// ===== UI =====
+let S=defaultState(); let A={}; let tab='resumen';
+const ui={cob:{q:'',sem:'todos',estado:'',vend:'',resp:'',cond:'',sort:'diasMax',dir:-1,lim:200}, acu:{f:'todos'},
+          dep:{q:'',flag:'todos',estado:'',lim:200,vista:'pend'}, wa:{sem:'rojo',excluirDias:3,excluirPromesa:true}, pend:null, drawer:null, dtab:'gestion', sel:new Set(), mass:null, xform:false};
+const FLAGS={soloViejos:['Solo comprobantes viejos','bad'],credViejos:['Créditos viejos sin imputar','warn'],deudaVieja:['Deuda anterior al período','warn'],
+  residuos:['Residuos de centavos','info'],aFavor:['Saldo a favor del cliente','info'],imputar:['Créditos para imputar contra facturas','ok']};
+const SEMN={rojo:'Rojo',amarillo:'Amarillo',verde:'Verde',none:'—'}, SEMK=['rojo','amarillo','verde'];
+const semRango=k=>{ const c=S.config; return k==='rojo'?`${c.sr} días vencido o más`: k==='amarillo'?`de ${c.sa} a ${c.sr-1} días vencido`: k==='verde'?`al día o con menos de ${c.sa} días vencido`:''; };
+const semCorto=k=>k==='verde'?`Verde · menos de ${S.config.sa} días`:`${SEMN[k]} · ${S.config[k==='rojo'?'sr':'sa']}+ días`;
+// Condiciones de pago: cómo se cobra cada categoría de cliente
+const REGLAS={vto:'Vencimiento Tango',dias:'Días fecha de factura',mes:'Cierre mensual',fecha:'Otra fecha'};
+const REGLA_AYUDA={vto:'Se usan los vencimientos del archivo de Tango',dias:'Cada factura se cobra a esa cantidad de días de su fecha',mes:'Todas las facturas de un mes se cobran juntas al cierre de ese mes',fecha:'Toda la deuda se cobra desde la fecha que elijas'};
+const condTxt=c=>c.regla==='dias'?`a ${+c.dias||0} ${(+c.dias||0)===1?'día':'días'} de la factura`: c.regla==='mes'?'al cierre mensual': c.regla==='fecha'?(c.fecha?`desde el ${fd(c.fecha)}`:'fecha a definir'):'al vencimiento de Tango';
+const TIPOS=['WhatsApp recibido','WhatsApp enviado','Llamada','Visita','Nota interna'];
+
+function esNotaCond(e){ return !!e&&e.tipo==='Sistema'&&/^Condición de pago del cliente:/.test(e.texto||''); }
+// Deja en el formato actual un juego de datos (lo que viene de Firebase o de un respaldo)
+function normalizar(s){ try{ if(s&&s.v) { s.comps=s.comps||{}; s.clientes=s.clientes||{}; s.gest=s.gest||{}; s.imports=s.imports||[];
+    Object.values(s.gest||{}).forEach(g=>{ if(g.log&&g.log.length>1) g.log=g.log.filter((e,i,L)=>!(esNotaCond(e)&&esNotaCond(L[i+1])&&String(e.f).slice(0,10)===String(L[i+1].f).slice(0,10))); }); const d=defaultState(), v1=!s.config||s.config.semV!==2, c1=!s.config||s.config.condV!==2, C1=(s.config&&s.config.conds)||{}; s.config=Object.assign(d.config,s.config);
+    // Las categorías por código de la nómina ya no se usan: todo vuelve al vencimiento de Tango. Solo se conserva lo que se eligió a mano en la ficha de un cliente.
+    if(c1) Object.values(s.gest||{}).forEach(g=>{ if(typeof g.cond==='string'){ const x=C1[g.cond]; if(x&&x.regla&&x.regla!=='vto') g.cond={regla:x.regla==='emi'?'dias':x.regla,dias:x.regla==='dias'?(+x.dias||0):0}; else delete g.cond; } });
+    s.config.condV=2; delete s.config.conds; if(s.config.corte&&!s.config.desdeSet){s.config.desde=s.config.corte;} delete s.config.corte; delete s.config.u1; delete s.config.u2;
+    if(v1){ s.config.sa=30; s.config.sr=60; delete s.config.sv; s.config.semV=2; Object.keys(PLANT_V1).forEach(k=>{ if(!s.plantillas||!s.plantillas[k]||s.plantillas[k]===PLANT_V1[k]) (s.plantillas=s.plantillas||{})[k]=PLANT[k]; }); } // semáforo y mensajes nuevos: solo pisa los textos que nadie editó
+    s.plantillas=Object.assign(d.plantillas,s.plantillas); return s; } }catch(e){} return defaultState(); }
+// ================= FIREBASE =================
+// Si alguna vez cambia el proyecto, este bloque se reemplaza por el que muestra Firebase en Configuración del proyecto → Tus apps.
+const firebaseConfig={
+  apiKey: "AIzaSyD1Ts6RJq5uOplA1JMpjoQGPxvspXE5cMk",
+  authDomain: "carmar-cobranzas.firebaseapp.com",
+  databaseURL: "https://carmar-cobranzas-default-rtdb.firebaseio.com",
+  projectId: "carmar-cobranzas",
+  storageBucket: "carmar-cobranzas.firebasestorage.app",
+  messagingSenderId: "544697152249",
+  appId: "1:544697152249:web:3cb6095818a74aa2976828"
+};
+const ADMIN_EMAIL='martinmaxi@gmail.com'; // administrador principal: entra siempre, aunque no esté en la lista de usuarios
+firebase.initializeApp(firebaseConfig);
+const FB={auth:firebase.auth(), db:firebase.database(), user:null, perfil:null, admin:false, listo:false, usuarios:{}, online:true, ultimo:null, ver:{data:0,nom:0}};
+FB.ref=FB.db.ref('cobranzas');
+const emailKey=e=>String(e||'').toLowerCase().replace(/\./g,',');
+// Las claves por código de cliente llevan una "c" adelante: Firebase convierte en lista las claves numéricas seguidas
+const encK=c=>'c'+String(c).replace(SAN,'_'), decK=k=>String(k).slice(1);
+const encMap=o=>{ const r={}; Object.keys(o||{}).forEach(c=>r[encK(c)]=o[c]); return r; }, decMap=o=>{ const r={}; Object.keys(o||{}).forEach(k=>r[decK(k)]=o[k]); return r; };
+const arr=x=>Array.isArray(x)?x.filter(v=>v!=null):(x&&typeof x==='object'?Object.values(x):[]);
+// Deja un valor tal como lo guarda Firebase (sin nulos ni vacíos, claves ordenadas). Sirve para escribir y para comparar.
+function fbClean(v){ if(v===null||v===undefined) return null; if(typeof v==='number') return isFinite(v)?v:null; if(typeof v!=='object') return v;
+  if(Array.isArray(v)){ const a=v.map(fbClean).filter(x=>x!==null); return a.length?a:null; }
+  const o={}; Object.keys(v).sort().forEach(k=>{ const x=fbClean(v[k]); if(x!==null) o[k]=x; }); return Object.keys(o).length?o:null; }
+const canon=v=>JSON.stringify(fbClean(v));
+const normG=g=>Object.assign({estado:'Sin gestionar',log:[],promesa:null,dep:{estado:'Pendiente',nota:''},wa:''},g||{},{log:arr((g||{}).log)});
+const cfgOut=()=>{ const x=Object.assign({},S.config); delete x.usuario; return x; }; // "usuario" es de cada sesión: no se comparte
+const ERRAUTH={'auth/invalid-credential':'Mail o contraseña incorrectos.','auth/invalid-login-credentials':'Mail o contraseña incorrectos.','auth/wrong-password':'Mail o contraseña incorrectos.','auth/user-not-found':'Mail o contraseña incorrectos.','auth/invalid-email':'El mail no es válido.','auth/missing-password':'Falta la contraseña.','auth/too-many-requests':'Demasiados intentos. Probá de nuevo en unos minutos.','auth/network-request-failed':'Sin conexión a internet.','auth/user-disabled':'Este usuario está deshabilitado.'};
+function msgErr(e){ const cd=(e&&e.code)||'', m=String((e&&e.message)||e||''); if(ERRAUTH[cd]) return ERRAUTH[cd];
+  if(/api-key|api key/i.test(cd+m)) return 'La clave del proyecto (apiKey) no es válida: hay que revisar el bloque firebaseConfig del archivo.';
+  if(/permission/i.test(cd+m)) return 'Firebase no dio permiso. Si es la primera vez, falta pegar las reglas en Realtime Database → Reglas.';
+  return m||'error desconocido'; }
+// snap: lo último que se sabe que está en Firebase, para subir solo lo que cambió (cada cliente por separado)
+const snap={gest:{},config:'null',plantillas:'null',imports:'null'};
+function pushCambios(extra){ if(!FB.listo) return Promise.resolve(); const up=Object.assign({},extra||{}), prev=[];
+  for(const cod in S.gest){ const j=canon(S.gest[cod]); if(j!==snap.gest[cod]){ up['gest/'+encK(cod)]=JSON.parse(j); prev.push([cod,snap.gest[cod]]); snap.gest[cod]=j; } }
+  [['config',cfgOut()],['plantillas',S.plantillas],['imports',S.imports]].forEach(([k,v])=>{ const j=canon(v); if(j!==snap[k]){ up[k]=JSON.parse(j); snap[k]=j; } });
+  if(!Object.keys(up).length) return Promise.resolve();
+  return FB.ref.update(up).then(()=>{ FB.ultimo=new Date(); estadoSync(); })
+    .catch(e=>{ prev.forEach(([cod,old])=>{ snap.gest[cod]=old; }); snap.config=snap.plantillas=snap.imports=''; toast('No se pudo guardar: '+msgErr(e)); }); }
+// Cada cambio se sube solo y actualiza al momento los contadores y las alertas
+let saveT; function save(){ badges(); clearTimeout(saveT); saveT=setTimeout(()=>pushCambios(),200); }
+// Listado de comprobantes completo (después de importar el Excel): se sube entero y avisa a los demás para que lo vuelvan a leer
+function guardarDatos(){ const ts=Date.now(); FB.ver.data=ts; clearTimeout(saveT); badges();
+  return pushCambios({comps:fbClean(S.comps), clientes:fbClean(encMap(S.clientes)), 'meta/dataVer':ts, 'meta/por':S.config.usuario||''}); }
+function estadoSync(){ const el=$('#saved'); if(!el) return; el.style.color=FB.online?'':'var(--rojo)';
+  el.textContent=!FB.online?' · Sin conexión: los cambios se suben al volver':(FB.ultimo?' · Sincronizado '+FB.ultimo.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false}):''); }
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const NF=new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0});
+const fmt=n=>NF.format(n||0); const fmt2=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS'}).format(n||0);
+const hoy=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const fd=iso=>iso?iso.slice(0,10).split('-').reverse().join('/'):'';
+const ahora=()=>new Date().toISOString();
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2600);}
+const G=cod=>S.gest[cod]||(S.gest[cod]={estado:'Sin gestionar',log:[],promesa:null,dep:{estado:'Pendiente',nota:''},wa:''});
+const peekG=cod=>S.gest[cod]||{estado:'Sin gestionar',log:[],promesa:null,dep:{estado:'Pendiente',nota:''},wa:''};
+const ultima=cod=>{const l=peekG(cod).log;return l.length?l[l.length-1]:null};
+// Última gestión hecha por una persona (las notas automáticas del sistema no cuentan como gestión)
+const ultGest=cod=>{const l=peekG(cod).log; for(let i=l.length-1;i>=0;i--) if(l[i].tipo!=='Sistema') return l[i]; return null;};
+// Nómina de clientes: va en su propio lugar de la base, aparte de las gestiones
+let N={meta:null,f:{}}, TC={};
+function saveN(){ const ts=Date.now(); FB.ver.nom=ts;
+  FB.ref.update({nomina:fbClean({meta:N.meta,f:encMap(N.f)}), 'meta/nomVer':ts}).then(()=>{ FB.ultimo=new Date(); estadoSync(); }).catch(e=>toast('No se pudo guardar la nómina: '+msgErr(e)));
+  return true; }
+// Lee todo desde Firebase al entrar
+async function cargarTodo(){
+  const [cfg,pl,im,co,cl,ge,no,me]=await Promise.all(['config','plantillas','imports','comps','clientes','gest','nomina','meta'].map(p=>FB.ref.child(p).once('value').then(s=>s.val())));
+  const comps=co||{}; Object.values(comps).forEach(x=>{ if(x.hist) x.hist=arr(x.hist); });
+  const gest=decMap(ge); Object.keys(gest).forEach(k=>{ gest[k]=normG(gest[k]); });
+  snap.gest={}; Object.keys(gest).forEach(k=>{ snap.gest[k]=canon(gest[k]); }); snap.config=canon(cfg); snap.plantillas=canon(pl); snap.imports=canon(arr(im));
+  S=normalizar({v:1, config:cfg?Object.assign({},cfg,{gestores:arr(cfg.gestores)}):undefined, plantillas:pl||{}, imports:arr(im), comps, clientes:decMap(cl), gest});
+  if(!cfg){ const d=defaultState(); S.config=d.config; } S.config.usuario=FB.perfil.nombre||'';
+  N=no&&no.f?{meta:no.meta||null,f:decMap(no.f)}:{meta:null,f:{}};
+  FB.ver.data=(me&&me.dataVer)||0; FB.ver.nom=(me&&me.nomVer)||0; }
+// Lo que cargan los demás aparece solo: cada cliente por separado, y el listado o la nómina cuando alguien sube un archivo
+function escuchar(){
+  const cae=e=>toast('Se cortó la sincronización: '+msgErr(e));
+  const g=FB.ref.child('gest'), onG=s=>{ const cod=decK(s.key), v=normG(s.val()), j=canon(v); if(snap.gest[cod]===j) return;
+    if(S.gest[cod]&&canon(S.gest[cod])!==snap.gest[cod]) return; // hay un cambio propio sin subir: gana el propio
+    S.gest[cod]=v; snap.gest[cod]=j; remoto(); };
+  g.on('child_added',onG,cae); g.on('child_changed',onG,cae); g.on('child_removed',s=>{ const cod=decK(s.key); if(!(cod in snap.gest)) return; delete snap.gest[cod]; delete S.gest[cod]; remoto(); });
+  FB.ref.child('config').on('value',s=>{ const v=s.val(), j=canon(v); if(!v||j===snap.config||canon(cfgOut())!==snap.config) return;
+    S.config=Object.assign(defaultState().config,v,{gestores:arr(v.gestores),usuario:S.config.usuario}); snap.config=j; remoto(); });
+  FB.ref.child('plantillas').on('value',s=>{ const v=s.val(), j=canon(v); if(!v||j===snap.plantillas||canon(S.plantillas)!==snap.plantillas) return; S.plantillas=Object.assign({},PLANT,v); snap.plantillas=j; remoto(); });
+  FB.ref.child('imports').on('value',s=>{ const v=arr(s.val()), j=canon(v); if(j===snap.imports||canon(S.imports)!==snap.imports) return; S.imports=v; snap.imports=j; remoto(); });
+  FB.ref.child('meta').on('value',async s=>{ const m=s.val()||{};
+    if(m.dataVer&&m.dataVer!==FB.ver.data){ FB.ver.data=m.dataVer; const [co,cl]=await Promise.all(['comps','clientes'].map(p=>FB.ref.child(p).once('value').then(x=>x.val())));
+      const comps=co||{}; Object.values(comps).forEach(x=>{ if(x.hist) x.hist=arr(x.hist); }); S.comps=comps; S.clientes=decMap(cl); ui.pend=null; remoto(); toast('Se actualizó el listado de comprobantes'+(m.por?' ('+m.por+')':'')); }
+    if(m.nomVer&&m.nomVer!==FB.ver.nom){ FB.ver.nom=m.nomVer; const no=(await FB.ref.child('nomina').once('value')).val(); N=no&&no.f?{meta:no.meta||null,f:decMap(no.f)}:{meta:null,f:{}}; remoto(); } });
+  FB.db.ref('.info/connected').on('value',s=>{ FB.online=!!s.val(); estadoSync(); });
+  const k=emailKey(FB.user.email);
+  FB.db.ref('usuarios/'+k).on('value',s=>{ const p=s.val(); if(!p&&k!==emailKey(ADMIN_EMAIL)){ gate('Tu usuario ya no está habilitado. Consultá con el administrador.','bloqueo'); return; }
+    if(p){ FB.perfil=p; FB.admin=p.rol==='admin'||k===emailKey(ADMIN_EMAIL); if(p.nombre&&p.nombre!==S.config.usuario){ S.config.usuario=p.nombre; renderQuien(); } } });
+  if(FB.admin) FB.db.ref('usuarios').on('value',s=>{ FB.usuarios=s.val()||{}; const ae=document.activeElement; if(tab==='ajustes'&&!(ae&&/^(INPUT|SELECT)$/.test(ae.tagName)&&$('#usrPanel')&&$('#usrPanel').contains(ae))) vAjustes(); });
+}
+// Llegó un cambio de otra persona: se recalcula y se redibuja sin pisar lo que el usuario está escribiendo
+let remT; function remoto(){ clearTimeout(remT); remT=setTimeout(()=>{ if(!FB.listo) return; recalc(); FB.ultimo=new Date(); estadoSync();
+  const ae=document.activeElement, escribe=ae&&/^(INPUT|TEXTAREA)$/.test(ae.tagName)&&!/^(checkbox|radio|file)$/.test(ae.type)&&ae.value, en=s=>{ const x=$(s); return !!(x&&ae&&x.contains(ae)); };
+  if(ui.mass){ ui.mass.list=ui.mass.list.filter(c=>enviable(A[c])); if(!(escribe&&en('#modal'))) renderMasivo(); return; }
+  if(!(escribe&&en('#main'))) render();
+  if(ui.drawer){ const gx=$('#gx'), xm=$('#xmot'), hn=$('#hrespN'); if(!(escribe&&en('#drawer'))&&!(gx&&gx.value.trim())&&!(xm&&xm.value.trim())&&!hn) renderDrawer(); } },400); }
+// Respaldo o carga inicial: reemplaza todo lo que hay en Firebase por lo que está en memoria
+async function subirTodo(){ const ts=Date.now(); FB.ver.data=FB.ver.nom=ts; clearTimeout(saveT);
+  snap.gest={}; Object.keys(S.gest).forEach(k=>{ snap.gest[k]=canon(S.gest[k]); }); snap.config=canon(cfgOut()); snap.plantillas=canon(S.plantillas); snap.imports=canon(S.imports);
+  await FB.ref.update({config:fbClean(cfgOut()),plantillas:fbClean(S.plantillas),imports:fbClean(S.imports),comps:fbClean(S.comps),clientes:fbClean(encMap(S.clientes)),gest:fbClean(encMap(S.gest)),'meta/dataVer':ts,'meta/por':S.config.usuario||''});
+  await FB.ref.update({nomina:fbClean({meta:N.meta,f:encMap(N.f)}),'meta/nomVer':ts}); FB.ultimo=new Date(); estadoSync(); }
+// ---------- INGRESO ----------
+function gate(msg,modo){ $('#gate').classList.remove('hidden'); $('#gateMsg').textContent=msg||''; $('#gateForm').classList.toggle('hidden',modo!=='login'); $('#gateOut').classList.toggle('hidden',modo!=='bloqueo'); }
+function entrar(){ $('#gate').classList.add('hidden'); document.querySelector('#nav [data-t="ajustes"]').classList.toggle('hidden',!FB.admin);
+  if(S.config.usuario) addGestor(S.config.usuario); if(!hasData()&&FB.admin) tab='importar'; recalc(); render(); pushCambios(); }
+function iniciarSesion(){
+  const ok=async()=>{ const m=$('#lgMail').value.trim(), p=$('#lgPass').value; $('#lgErr').textContent=''; if(!m||!p){ $('#lgErr').textContent='Completá mail y contraseña.'; return; }
+    $('#lgOk').disabled=true; try{ await FB.auth.signInWithEmailAndPassword(m,p); }catch(e){ $('#lgErr').textContent=msgErr(e); } $('#lgOk').disabled=false; };
+  $('#lgOk').onclick=ok; $('#lgPass').onkeydown=e=>{ if(e.key==='Enter') ok(); }; $('#lgMail').onkeydown=e=>{ if(e.key==='Enter') $('#lgPass').focus(); };
+  $('#lgReset').onclick=async()=>{ const m=$('#lgMail').value.trim(); if(!m){ $('#lgErr').textContent='Escribí tu mail arriba y volvé a tocar este botón.'; return; }
+    try{ await FB.auth.sendPasswordResetEmail(m); $('#lgErr').textContent='Te mandamos un mail para elegir una contraseña nueva.'; }catch(e){ $('#lgErr').textContent=msgErr(e); } };
+  $('#lgSalir').onclick=salir;
+  FB.auth.onAuthStateChanged(async u=>{ FB.user=u; if(!u){ FB.listo=false; gate('Ingresá con tu usuario.','login'); const i=$('#lgMail'); if(i) i.focus(); return; }
+    gate('Cargando datos…');
+    try{ const k=emailKey(u.email), r=FB.db.ref('usuarios/'+k); let p=(await r.once('value')).val();
+      if(!p&&k===emailKey(ADMIN_EMAIL)){ p={email:u.email.toLowerCase(),nombre:'Maxi',rol:'admin'}; await r.set(p); }
+      if(!p){ gate(`El usuario ${u.email} todavía no está habilitado en la app. Pedile al administrador que lo habilite en Ajustes → Usuarios.`,'bloqueo'); return; }
+      FB.perfil=p; FB.admin=p.rol==='admin'||k===emailKey(ADMIN_EMAIL);
+      await cargarTodo(); FB.listo=true; escuchar(); entrar();
+    }catch(e){ gate('No se pudieron leer los datos. '+msgErr(e),'bloqueo'); } });
+}
+function salir(){ FB.auth.signOut().then(()=>location.reload()); }
+const hayNomina=()=>!!N.meta;
+const ficha=cod=>fichaDe(N.f,cod);
+const lastCob=()=>S.imports.find(i=>i.tipo!=='nomina');
+function telCands(cod){ return TC[cod]||(TC[cod]=candsTel(S.clientes[cod],ficha(cod))); }
+function telWA(cod){ const g=peekG(cod); if(g.wa){ const t=mejorTel(null,null,g.wa); if(t) return t; } return mejorDe(telCands(cod)); }
+const TELTAG={cel:['celular','ok'],dudoso:['verificar','warn'],fijo:['parece fijo','bad']};
+const telTag=t=>t&&t.verificar?` <span class="tag ${TELTAG[t.tipo][1]}">${TELTAG[t.tipo][0]}</span>`:'';
+// Línea con las observaciones de la nómina (cómo opera el cliente) para las tablas
+const obsLine=cod=>{ const f=ficha(cod); return f&&(f.obs||f.inh)?`<div class="obsline" title="Observaciones de la nómina de clientes">${f.inh?'<span class="tag bad">inhabilitado</span>':''}${esc(f.obs||'')}</div>`:''; };
+function coincide(cod,q){ const c=S.clientes[cod]||{}, f=ficha(cod)||{}, qd=q.replace(/\D/g,'');
+  return (c.nombre||'').toLowerCase().includes(q)||String(cod).toLowerCase().includes(q)||(f.obs||'').toLowerCase().includes(q)||(f.nc||'').toLowerCase().includes(q)||(qd.length>=6&&(f.cuit||'').replace(/\D/g,'').includes(qd)); }
+const semHTML=s=>s==='none'?'<span class="mute">—</span>':`<span class="sema ${s}" title="${SEMN[s]}: ${semRango(s)}"><i></i><i></i><i></i></span>`;
+// Promesa de pago de un cliente. est: 'vigente' (todavía no llegó la fecha), 'vencida' (pasó la fecha), 'alerta' (pasaron los días de tolerancia de Ajustes)
+const promTol=()=>Math.max(1,+(S.config.promDias??2)||1);
+function prom(cod){ const p=peekG(cod).promesa; if(!p||!p.fecha) return null; const d=diasEntre(p.fecha,hoy()); return {fecha:p.fecha,monto:p.monto||0,dias:d,est:d<=0?'vigente':d>=promTol()?'alerta':'vencida'}; }
+const haceDias=d=>d===1?'ayer':`hace ${d} días`;
+function estadoTag(cod){ const g=peekG(cod); const e=g.estado; let cls=''; if(e==='Promesa de pago')cls='info'; else if(e==='Cancelado')cls='ok'; else if(e==='En disputa'||e==='No responde')cls='bad'; else if(e==='Pagó parcial')cls='ok'; else if(e!=='Sin gestionar')cls='warn';
+  let x=`<span class="tag ${cls}">${esc(e)}</span>`; if(g.excl) x+='<span class="tag info">acuerdo especial</span>'; const p=prom(cod);
+  if(p) x+= p.est==='alerta'?`<div class="small promal"><span class="tag bad">Alerta</span>Promesa del ${fd(p.fecha)} incumplida · ${haceDias(p.dias)}</div>`
+    : p.est==='vencida'?`<div class="small" style="color:var(--rojo);font-weight:600">Promesa ${fd(p.fecha)} · venció ${haceDias(p.dias)}</div>`
+    : `<div class="small mute">Promesa ${fd(p.fecha)}${p.monto?' · '+fmt(p.monto):''}</div>`;
+  return x; }
+function promesaVencida(cod){ const p=prom(cod); return !!(p&&p.est!=='vigente'); }
+// Clientes que se cobran: con deuda del período y sin acuerdo especial
+const cobrables=()=>Object.values(A).filter(a=>a.deudaNueva>0&&!a.excl);
+// A quién se le puede mandar un reclamo: tiene que quedar saldo después de descontar los créditos a cuenta
+const enviable=a=>!!a&&a.deudaNueva>0&&!a.excl&&a.deudaNueva+a.credNuevos>=1;
+const promAlertas=()=>cobrables().filter(a=>{const p=prom(a.cod); return p&&p.est==='alerta';});
+// Acuerdos especiales que llegaron a su fecha de corte: hay que revisarlos
+const acuRevisar=()=>Object.values(A).filter(a=>{ const x=peekG(a.cod).excl; return a.excl&&x&&x.rev&&x.rev<=hoy(); });
+function alertBar(){ const el=$('#alertas'); if(!el) return; const L=promAlertas(), R=acuRevisar(); let h='';
+  if(L.length){ const monto=L.reduce((s,a)=>s+prom(a.cod).monto,0), deuda=L.reduce((s,a)=>s+a.deudaNueva,0), n=promTol();
+    h+=`<button class="alerta" id="alBtn"><span class="albadge">${L.length}</span><span><b>${L.length===1?'Promesa de pago incumplida':'Promesas de pago incumplidas'}</b><span class="small"> · ${n===1?'pasó 1 día':'pasaron '+n+' días'} o más desde la fecha prometida${monto?' · '+fmt(monto)+' prometidos':''} · ${fmt(deuda)} de deuda</span></span><span class="alver">Ver cuáles</span></button>`; }
+  if(R.length) h+=`<button class="alerta rev" id="alRev"><span class="albadge">${R.length}</span><span><b>${R.length===1?'Acuerdo especial para revisar':'Acuerdos especiales para revisar'}</b><span class="small"> · ${R.length===1?'llegó a su fecha de corte':'llegaron a su fecha de corte'}: definí si se gestiona o sigue el acuerdo · ${fmt(R.reduce((s,a)=>s+a.deudaNueva,0))} de deuda</span></span><span class="alver">Revisar</span></button>`;
+  el.innerHTML=h;
+  const b=$('#alBtn'); if(b) b.onclick=()=>{ tab='cobranza'; Object.assign(ui.cob,{estado:'__alerta',sem:'todos',q:'',vend:'',resp:'',cond:''}); render(); };
+  const r=$('#alRev'); if(r) r.onclick=()=>{ tab='acuerdos'; ui.acu.f='rev'; render(); }; }
+// Acuerdo especial: motivo (por qué no se gestiona) y fecha de corte (cuándo volver a mirarlo; vacía = sin fecha)
+function setExcl(cods,motivo,rev){ cods.forEach((cod,i)=>{ const g=G(cod); g.excl={motivo:motivo||'',rev:rev||'',f:hoy(),usuario:S.config.usuario||''};
+    g.log.push({id:Date.now()+'_x'+i,f:ahora(),tipo:'Sistema',texto:'Acuerdo especial: sale de A cobrar, de las alertas y de los envíos de WhatsApp.'+(motivo?' Motivo: '+motivo:'')+(rev?' Fecha de corte: '+fd(rev)+'.':''),usuario:S.config.usuario||'',auto:true}); ui.sel.delete(cod); });
+  save(); recalc(); }
+function quitarExcl(cod){ const g=G(cod); delete g.excl; g.log.push({id:Date.now()+'_x',f:ahora(),tipo:'Sistema',texto:'Se quitó el acuerdo especial: vuelve a A cobrar.',usuario:S.config.usuario||'',auto:true}); save(); recalc(); }
+// Condición de pago: todos los clientes se manejan con el vencimiento del archivo de Tango, salvo los que se modifican a mano en la ficha.
+// Lo modificado se guarda con las gestiones del cliente: no lo pisan el Excel semanal ni la nómina.
+function condCli(cod){ const c=(S.gest[cod]||{}).cond; return c&&typeof c==='object'&&c.regla&&c.regla!=='vto'&&!(c.regla==='fecha'&&!c.fecha)?c:null; }
+// Quién gestiona: queda en cada gestión y en cada mensaje. El responsable del cliente es quien lo gestiona primero (se cambia en la ficha).
+function addGestor(v){ v=String(v||'').trim().replace(/\s+/g,' '); if(!v) return ''; const L=S.config.gestores=S.config.gestores||[], x=L.find(n=>n.toLowerCase()===v.toLowerCase()); if(x) return x; L.push(v); return v; }
+function setUsuario(v){ /* el nombre sale del usuario que entró */ }
+function renderQuien(){ const el=$('#quien'); if(!el) return; if(!FB.perfil){ el.innerHTML=''; return; }
+  el.innerHTML=`<span class="mute">Usuario</span><b>${esc(S.config.usuario||FB.user.email)}</b>${FB.admin?'<span class="tag">administrador</span>':''}<button class="btn sm" id="salir">Salir</button><datalist id="usrL"></datalist>`;
+  $('#salir').onclick=()=>{ if(confirm('¿Cerrar la sesión?')) salir(); }; }
+function requireUser(){ if(S.config.usuario) return true; toast('Tu usuario no tiene nombre cargado: pedile al administrador que lo complete en Ajustes → Usuarios.'); return false; }
+const gestoresOpts=sel=>[...new Set((S.config.gestores||[]).concat(sel?[sel]:[]))].map(g=>`<option ${g===sel?'selected':''}>${esc(g)}</option>`).join('');
+function asignar(cod){ const g=G(cod); if(!g.resp&&S.config.usuario) g.resp=S.config.usuario; }
+const PER=()=>periodo(S.config);
+const perTxt=()=>{const p=PER();return p.hasta?`del ${fd(p.desde)} al ${fd(p.hasta)}`:`desde el ${fd(p.desde)}`};
+const depPend=a=>a.flags.length&&(peekG(a.cod).dep||{}).estado!=='Resuelto';
+function renderPeriodo(){ const p=PER(), y=new Date().getFullYear(), iso=d=>d.toISOString().slice(0,10), hace=m=>{const d=new Date();d.setMonth(d.getMonth()-m);return iso(d)};
+  const pres=[['Año '+y,`${y}-01-01`,''],['Últimos 12 meses',hace(12),''],['Últimos 6 meses',hace(6),''],['Año '+(y-1),`${y-1}-01-01`,`${y-1}-12-31`],['Todo','2000-01-01','']];
+  $('#periodo').innerHTML=`<span class="mute">Período a cobrar</span><input type="date" id="pDesde" value="${p.desde}" aria-label="Desde"><span class="mute">a</span><input type="date" id="pHasta" value="${p.hasta}" aria-label="Hasta (vacío = sin límite)" title="Vacío = sin límite">
+   <select id="pPreset" aria-label="Períodos rápidos"><option value="">Rápido…</option>${pres.map((x,i)=>`<option value="${i}">${x[0]}</option>`).join('')}</select>`;
+  const apply=(d,h)=>{ if(h&&d>h){toast('La fecha "desde" tiene que ser anterior a "hasta".');renderPeriodo();return;} S.config.desde=d; S.config.hasta=h; save(); recalc(); render(); if(ui.drawer)renderDrawer(); toast('Período: '+perTxt()); };
+  $('#pDesde').onchange=e=>e.target.value&&apply(e.target.value,$('#pHasta').value); $('#pHasta').onchange=e=>apply($('#pDesde').value,e.target.value);
+  $('#pPreset').onchange=e=>{const x=pres[+e.target.value]; if(x) apply(x[1],x[2]);}; }
+function badges(){ $('#nCob').textContent=cobrables().length; $('#nDep').textContent=Object.values(A).filter(depPend).length; $('#nAcu').textContent=Object.values(A).filter(a=>a.excl).length; alertBar(); }
+function recalc(){ ui.dia=hoy(); A=analizar(S,ui.dia,condCli); TC={}; renderQuien(); [...ui.sel].forEach(c=>{ if(!A[c]) ui.sel.delete(c); }); renderPeriodo(); if(!FB.admin) ['#pDesde','#pHasta','#pPreset'].forEach(s=>{ const e=$(s); if(e){ e.disabled=true; e.title='El período lo cambia el administrador'; } }); badges(); $('#empresaLbl').textContent=S.config.empresa?('· '+S.config.empresa):'';
+  const li=lastCob(); $('#lastImp').textContent=(li?`Listado: ${li.archivo} (${fd(li.fecha)})`:'Sin listado cargado')+(N.meta?` · Nómina del ${fd(N.meta.fecha)}`:' · Sin nómina'); }
+// Cambio de día: si la app queda abierta de un día para el otro, recalcula sola vencidos, días de atraso, semáforo y alertas
+function alDia(){ if(!ui.dia||ui.dia===hoy()) return; recalc(); if(ui.mass){ ui.mass.list=ui.mass.list.filter(c=>enviable(A[c])); renderMasivo(); return; }
+  const ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA)$/.test(ae.tagName)&&ae.type!=='checkbox'&&ae.value) return; // no interrumpe a quien está escribiendo: se ve en el próximo cambio de pantalla
+  render(); if(ui.drawer) renderDrawer(); toast('Cambió el día: se actualizaron atrasos, semáforo y alertas'); }
+setInterval(alDia,60000); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) alDia(); }); window.addEventListener('focus',alDia);
+function render(){ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab)); ({resumen:vResumen,cobranza:vCobranza,depurar:vDepurar,acuerdos:vAcuerdos,wa:vWA,importar:vImportar,ajustes:vAjustes})[tab](); }
+$('#nav').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;render();};
+const hasData=()=>Object.keys(S.comps).length>0;
+const emptyCTA=()=>`<div class="drop"><h2>Todavía no hay datos</h2><p class="sub" style="margin:8px auto 14px">Subí el Excel de cobranzas a realizar para empezar.</p><button class="btn pri" onclick="tab='importar';render()">Importar Excel</button></div>`;
+
+// ---------- RESUMEN ----------
+function vResumen(){
+  const m=$('#main'); if(!hasData()){m.innerHTML=emptyCTA();return;}
+  const v=Object.values(A), cob=cobrables(), exc=v.filter(a=>a.excl&&a.deudaNueva>0);
+  const tot=cob.reduce((s,a)=>s+a.deudaNueva,0), venc=cob.reduce((s,a)=>s+a.vencido,0), porV=tot-venc, totExc=exc.reduce((s,a)=>s+a.deudaNueva,0);
+  const cnt={}, mon={}; SEMK.forEach(k=>{cnt[k]=0;mon[k]=0;}); cob.forEach(a=>{cnt[a.sem]++;mon[a.sem]+=a.deudaNueva;});
+  const urg=cob.filter(a=>(a.sem==='rojo'||a.sem==='amarillo')&&peekG(a.cod).estado==='Sin gestionar');
+  const dep=v.filter(depPend), credV=v.reduce((s,a)=>s+a.viejos.filter(i=>i.imp<0).reduce((x,i)=>x+i.imp,0),0);
+  const al=promAlertas().sort((a,b)=>prom(b.cod).dias-prom(a.cod).dias);
+  const proms=cob.filter(a=>{const p=prom(a.cod); return p&&p.est!=='alerta';}).sort((a,b)=>prom(a.cod).fecha<prom(b.cod).fecha?-1:1);
+  const lim=new Date(Date.now()-3*864e5).toISOString();
+  const prio=cob.filter(a=>a.sem==='rojo'||a.sem==='amarillo').filter(a=>{const u=ultGest(a.cod);return !u||u.f<lim}).sort((a,b)=>b.vencido-a.vencido).slice(0,10);
+  const seg=k=>`<span style="width:${tot?mon[k]/tot*100:0}%;background:var(--${k})" title="${SEMN[k]}: ${fmt(mon[k])}"></span>`;
+  const li=(a,der)=>`<li data-selrow="${esc(a.cod)}" class="${ui.sel.has(a.cod)?'sel':''}"><span class="selc" data-sel="${esc(a.cod)}"><input type="checkbox" ${ui.sel.has(a.cod)?'checked':''} aria-label="Elegir a ${esc(S.clientes[a.cod].nombre)}"></span><a href="#" data-open="${esc(a.cod)}">${semHTML(a.sem)} ${esc(S.clientes[a.cod].nombre)}</a><span style="text-align:right">${der}</span></li>`;
+  const cab=(tit,n)=>`<div class="row" style="justify-content:space-between"><b>${tit}</b>${n?'<span class="selc small mute" data-selall="1"><input type="checkbox" aria-label="Elegir todos los de esta lista"> todos</span>':''}</div>`;
+  m.innerHTML=`<h2>Resumen al ${fd(hoy())}</h2><p class="sub">Deuda emitida ${perTxt()}. Lo anterior al período va a la pestaña Depurar. Tildá clientes en cualquier lista para mandarles WhatsApp en una tanda.</p>
+  <div class="kpis">
+    <div class="panel kpi"><div class="l">Total a cobrar del período</div><div class="v">${fmt(tot)}</div><div class="l">${cob.length} clientes${exc.length?` · aparte, ${fmt(totExc)} en ${exc.length} con acuerdo especial`:''}</div></div>
+    <div class="panel kpi"><div class="l">Vencido</div><div class="v" style="color:var(--rojo)">${fmt(venc)}</div><div class="l">${tot?Math.round(venc/tot*100):0}% del total · a vencer ${fmt(porV)}</div></div>
+    <div class="panel kpi"><div class="l">Promesas incumplidas</div><div class="v" style="${al.length?'color:var(--rojo)':''}">${al.length}</div><div class="l">${promTol()===1?'pasó 1 día':'pasaron '+promTol()+' días'} o más de la fecha prometida</div></div>
+    <div class="panel kpi"><div class="l">Rojo y amarillo sin gestionar</div><div class="v">${urg.length}</div><div class="l">clientes para contactar ya</div></div>
+    <div class="panel kpi"><div class="l">Para depurar</div><div class="v">${dep.length}</div><div class="l">${fmt(credV)} en créditos viejos sin imputar</div></div>
+  </div>
+  <div class="panel" style="padding:14px 16px;margin-bottom:12px"><b>Semáforo por monto</b>
+    <div class="bar">${SEMK.map(seg).join('')}</div>
+    <div class="legend">${SEMK.map(k=>`<span title="${semRango(k)}"><span class="dot" style="background:var(--${k})"></span> ${SEMN[k]} <b>${cnt[k]}</b> · ${fmt(mon[k])}</span>`).join('')}</div>
+    <div class="small mute" style="margin-top:6px">Verde: al día o con menos de ${S.config.sa} días vencido · Amarillo: desde ${S.config.sa} · Rojo: desde ${S.config.sr}. El color lo da el comprobante más atrasado; la ficha y el mensaje traen siempre toda la deuda. Los días se cambian en Ajustes.</div></div>
+  ${al.length?`<div class="panel" data-lista style="padding:14px 16px;margin-bottom:12px;border-left:6px solid var(--rojo)">${cab('Alerta: promesas de pago incumplidas',al.length)}<div class="small mute">Prometieron pagar y ya ${promTol()===1?'pasó 1 día':'pasaron '+promTol()+' días'} o más. Abrí la ficha para cargar una fecha nueva o cerrar la promesa.</div>
+      <ul class="list" style="margin-top:8px">${al.map(a=>{const p=prom(a.cod); return li(a,`<b style="color:var(--rojo)">${fd(p.fecha)} · ${haceDias(p.dias)}</b><div class="small mute">${p.monto?'prometió '+fmt(p.monto)+' · ':''}debe ${fmt(a.deudaNueva)}</div>`);}).join('')}</ul></div>`:''}
+  <div class="grid2">
+    <div class="panel" data-lista style="padding:14px 16px">${cab('Prioridad de hoy',prio.length)}<div class="small mute">Rojo y amarillo sin gestión en los últimos 3 días, por monto vencido</div>
+      <ul class="list" style="margin-top:8px">${prio.map(a=>li(a,`${fmt(a.vencido)} · ${a.diasMax} d`)).join('')||'<li class="mute">Nada pendiente</li>'}</ul></div>
+    <div class="panel" data-lista style="padding:14px 16px">${cab('Promesas de pago',Math.min(proms.length,12))}<div class="small mute">Por fecha prometida. ${promTol()===1?'Al día siguiente de vencer':'A los '+promTol()+' días de vencidas'} pasan a la alerta</div>
+      <ul class="list" style="margin-top:8px">${proms.slice(0,12).map(a=>{const p=prom(a.cod), ve=p.est==='vencida'; return li(a,`<span style="${ve?'color:var(--rojo);font-weight:600':''}">${fd(p.fecha)}${p.monto?' · '+fmt(p.monto):''}${ve?' · venció '+haceDias(p.dias):''}</span>`);}).join('')||'<li class="mute">Sin promesas pendientes</li>'}</ul></div>
+  </div>`;
+  m.querySelectorAll('[data-lista]').forEach(bindSel); m.querySelectorAll('[data-open]').forEach(l=>l.onclick=e=>{e.preventDefault();openCli(l.dataset.open);}); selSync();
+}
+
+// ---------- CELULAR EN LA FILA + SELECCIÓN ----------
+// Celda de WhatsApp de una fila: botón si hay número; si no, un campo para cargarlo ahí mismo
+function celdaWA(cod,editar){ const t=telWA(cod);
+  if(!t||editar) return `<input type="text" class="telin" data-tel="${esc(cod)}" placeholder="${t?'Otro celular':'Cargar celular'}" aria-label="Cargar celular para WhatsApp" inputmode="tel" autocomplete="off">`;
+  return `<button class="btn wa sm" data-wa="${esc(cod)}">WhatsApp</button>${t.verificar?`<div><button class="tag ${TELTAG[t.tipo][1]} tagbtn" data-cambiar="${esc(cod)}" title="Cargar otro número para este cliente">${TELTAG[t.tipo][0]} · cambiar</button></div>`:''}`; }
+// Guarda el celular cargado a mano (queda aparte: no lo pisan el Excel ni la nómina). Devuelve true si quedó guardado.
+function guardarTel(cod,inp){ const v=inp.value.trim(); if(!v) return false; const t=normTel(v);
+  if(!t){ inp.classList.add('bad'); toast('Ese número no parece válido: van 10 dígitos con característica (264 4123456) o el local con 15.'); return false; }
+  G(cod).wa=v; save(); toast(`Celular guardado para ${(S.clientes[cod]||{}).nombre||cod}: ${t.ver}`); return true; }
+// Engancha los campos de celular de una tabla. alGuardar(cod, celda) decide qué se redibuja.
+function bindTel(tb,alGuardar){
+  tb.addEventListener('change',e=>{ const i=e.target.closest('.telin'); if(!i) return; const cod=i.dataset.tel, td=i.closest('td'); if(guardarTel(cod,i)) alGuardar(cod,td); else if(!i.value.trim()&&telWA(cod)) td.innerHTML=celdaWA(cod); });
+  tb.addEventListener('keydown',e=>{ const i=e.target.closest('.telin'); if(!i) return; i.classList.remove('bad');
+    if(e.key==='Enter'){ e.preventDefault(); const v=i.value.trim(), ok=!v||!!normTel(v), all=[...tb.querySelectorAll('.telin')], nx=all[all.indexOf(i)+1]; i.blur();
+      if(!ok){ i.focus(); return; } if(nx&&document.contains(nx)) nx.focus(); } // Enter guarda y salta al próximo cliente sin celular
+    if(e.key==='Escape'){ e.stopPropagation(); const td=i.closest('td'), cod=i.dataset.tel; i.value=''; if(td.dataset.telc&&telWA(cod)) td.innerHTML=celdaWA(cod); else i.blur(); } });
+}
+// ---------- TILDES: se pueden elegir clientes en todas las pestañas y la selección se mantiene al cambiar de una a otra ----------
+const selTh=()=>'<th class="selc" data-selall="1" title="Elegir todos los de esta lista"><input type="checkbox" aria-label="Elegir todos los de esta lista"></th>';
+const selTd=cod=>`<td class="selc" data-sel="${esc(cod)}"><input type="checkbox" ${ui.sel.has(cod)?'checked':''} aria-label="Elegir a ${esc((S.clientes[cod]||{}).nombre||cod)}"></td>`;
+// root: tabla o panel con filas [data-selrow], tildes [data-sel] y, si hay, un "elegir todos" [data-selall]. Mayús + clic elige el tramo completo.
+function bindSel(root){ let last=null; root.dataset.selroot='1';
+  root.addEventListener('click',e=>{ const ha=e.target.closest('[data-selall]'), sc=!ha&&e.target.closest('[data-sel]'); if(!ha&&!sc) return; e.stopPropagation();
+    const rows=[...root.querySelectorAll('[data-selrow]')];
+    if(ha){ const cb=ha.querySelector('input'); if(e.target!==cb) cb.checked=!cb.checked; rows.forEach(r=>cb.checked?ui.sel.add(r.dataset.selrow):ui.sel.delete(r.dataset.selrow)); last=null; }
+    else { const cb=sc.querySelector('input'), ix=rows.indexOf(sc.closest('[data-selrow]')); if(e.target!==cb) cb.checked=!cb.checked;
+      const d=e.shiftKey&&last!=null?Math.min(last,ix):ix, h=e.shiftKey&&last!=null?Math.max(last,ix):ix;
+      for(let k=d;k<=h;k++) cb.checked?ui.sel.add(rows[k].dataset.selrow):ui.sel.delete(rows[k].dataset.selrow); last=ix; }
+    selSync(); },true); }
+function selSync(){ document.querySelectorAll('#main [data-selrow]').forEach(r=>{ const on=ui.sel.has(r.dataset.selrow), cb=r.querySelector('[data-sel] input'); if(cb) cb.checked=on; r.classList.toggle('sel',on); });
+  document.querySelectorAll('#main [data-selroot]').forEach(root=>{ const all=root.querySelector('[data-selall] input'); if(!all) return; const R=[...root.querySelectorAll('[data-selrow]')], n=R.filter(r=>ui.sel.has(r.dataset.selrow)).length; all.checked=n>0&&n===R.length; all.indeterminate=n>0&&n<R.length; });
+  selBar(); }
+// all: todos los tildados · L: a los que se les puede enviar (tienen deuda del período y no tienen acuerdo especial)
+function selInfo(){ const all=[...ui.sel].filter(c=>A[c]), L=all.filter(c=>enviable(A[c])); let cel=0,ver=0,sin=0,deuda=0,venc=0;
+  L.forEach(c=>{const t=telWA(c); if(!t)sin++; else if(t.verificar)ver++; else cel++; deuda+=A[c].deudaNueva; venc+=A[c].vencido;}); return {all,L,fuera:all.length-L.length,cel,ver,sin,deuda,venc}; }
+function selBar(){ const el=$('#selbar'); if(!el) return; const i=selInfo(), n=i.all.length; el.classList.toggle('hidden',!n); if(!n){ el.innerHTML=''; return; }
+  const paraExc=i.all.filter(c=>!A[c].excl);
+  el.innerHTML=`<div><b>${n} ${n===1?'cliente elegido':'clientes elegidos'}</b> · deuda total ${fmt(i.deuda)} · vencido ${fmt(i.venc)}
+    <div class="small mute">${i.cel} con celular${i.ver?` · ${i.ver} con número a verificar`:''}${i.sin?` · ${i.sin} sin teléfono`:''}${i.fuera?` · ${i.fuera} sin deuda para reclamar o con acuerdo especial (no se les envía)`:''}</div></div><span style="flex:1"></span>
+   <button class="btn wa" id="selSend" ${i.L.length?'':'disabled'}>Enviar WhatsApp a ${i.L.length===n?'los elegidos':i.L.length+' de ellos'}</button><select id="selResp" aria-label="Asignar responsable a los elegidos"><option value="">Asignar responsable…</option>${gestoresOpts('')}<option value="__no">Sin responsable</option></select>${paraExc.length?'<button class="btn" id="selExc" title="Los saca de A cobrar: quedan en Acuerdos especiales">No cobrar (acuerdo especial)</button>':''}<button class="btn" id="selClear">Quitar selección</button>`;
+  $('#selResp').onchange=e=>{ const v=e.target.value; if(!v) return; i.all.forEach(c=>{ if(v==='__no') delete G(c).resp; else G(c).resp=v; }); save(); render(); if(ui.drawer) renderDrawer(); toast(v==='__no'?`${n} sin responsable`:`${n} ${n===1?'cliente asignado':'clientes asignados'} a ${v}`); };
+  $('#selSend').onclick=abrirMasivo; $('#selClear').onclick=()=>{ui.sel.clear();selSync();};
+  const x=$('#selExc'); if(x) x.onclick=()=>{ const k=paraExc.length; if(!confirm(`¿Sacar ${k===1?'este cliente':'estos '+k+' clientes'} de A cobrar por acuerdo especial? No van a aparecer en el listado, las alertas ni los envíos. Los volvés a incluir desde la pestaña Acuerdos especiales.`)) return;
+    setExcl(paraExc,'',''); tab='acuerdos'; ui.acu.f='todos'; render(); if(ui.drawer) renderDrawer(); toast(`${k} ${k===1?'cliente pasó':'clientes pasaron'} a Acuerdos especiales. Cargá acá el motivo y la fecha de corte.`); }; }
+
+// ---------- ENVÍO A VARIOS ----------
+// WhatsApp no deja que una página mande mensajes sola: se abre un chat por clic, con el texto ya armado, y la app lleva la cuenta.
+function abrirMasivo(){ const L=selInfo().L; if(!L.length) return;
+  const vis=[...new Set([...document.querySelectorAll('#main [data-selrow]')].map(r=>r.dataset.selrow))].filter(c=>L.includes(c)), resto=L.filter(c=>!vis.includes(c));
+  ui.mass={list:vis.concat(resto),done:{},tpl:'auto'}; renderMasivo(); $('#modal').classList.add('open'); const b=$('#mnext'); if(b) b.focus(); }
+function cerrarMasivo(limpiar){ $('#modal').classList.remove('open'); $('#modal').innerHTML=''; if(limpiar) ui.sel.clear(); else if(ui.mass) Object.keys(ui.mass.done).forEach(c=>{ if(ui.mass.done[c]==='ok') ui.sel.delete(c); }); ui.mass=null; render(); }
+function renderMasivo(){
+  const M=ui.mass, tot=M.list.length, nOk=M.list.filter(c=>M.done[c]==='ok').length, nSk=M.list.filter(c=>M.done[c]==='skip').length;
+  const sinTel=M.list.filter(c=>!M.done[c]&&!telWA(c)), next=M.list.find(c=>!M.done[c]&&telWA(c)), lim=new Date(Date.now()-3*864e5).toISOString();
+  const TP={auto:'Según el semáforo de cada cliente (y promesa incumplida, si tiene)',preventivo:'Preventivo para todos',recordatorio:'Recordatorio para todos',reclamo:'Reclamo para todos',promesa:'Promesa incumplida (a quien no tiene promesa, según semáforo)'};
+  const MD={wame:'Automático (enlace wa.me, una pestaña por cliente)',web:'WhatsApp Web (reutiliza siempre la misma pestaña)',app:'WhatsApp instalado en esta PC'};
+  const msgDe=cod=>mensajeDe(cod,M.tpl), deudaT=M.list.reduce((s,c)=>s+A[c].deudaNueva,0), vencT=M.list.reduce((s,c)=>s+A[c].vencido,0);
+  const aviso=cod=>{ const g=peekG(cod), u=ultGest(cod), x=[], p=prom(cod); if(p) x.push(p.est==='alerta'?`<span class="tag bad">promesa del ${fd(p.fecha)} incumplida</span>`:`<span class="tag info">promesa ${fd(p.fecha)}</span>`); if(g.estado==='En disputa') x.push('<span class="tag bad">en disputa</span>'); if(u&&u.f>=lim&&!M.done[cod]) x.push(`<span class="tag warn">gestionado el ${fd(u.f)}</span>`); return x.join(''); };
+  let top;
+  if(next){ const t=telWA(next), a=A[next];
+    top=`<div class="panel" style="padding:14px"><div class="small mute">Siguiente · ${nOk+nSk+1} de ${tot}</div>
+      <div class="nm" style="font-size:17px">${esc(S.clientes[next].nombre)}</div>
+      <div class="small">${semHTML(a.sem)} ${esc(t.ver)}${telTag(t)} · deuda total ${fmt(a.deudaNueva)} · vencido ${fmt(a.vencido)} · ${a.diasMax} días ${aviso(next)}</div>${obsLine(next)}
+      <div class="msgprev" style="margin:10px 0;max-width:none">${esc(msgDe(next))}</div>
+      <div class="row"><button class="btn wa" id="mnext">Abrir WhatsApp y pasar al siguiente</button><button class="btn" id="mskip">Saltar este cliente</button></div></div>`;
+  } else {
+    top=`<div class="panel" style="padding:14px"><b>${nOk||nSk?'Listo.':'Ninguno de los elegidos tiene teléfono.'}</b> ${nOk} ${nOk===1?'chat abierto':'chats abiertos'}${nSk?`, ${nSk} salteado(s)`:''}${sinTel.length?`. Quedan ${sinTel.length} sin teléfono: cargalo abajo y entran en la tanda.`:'.'}
+      <div class="row" style="margin-top:10px"><button class="btn pri" id="mfin">Cerrar y quitar la selección</button></div></div>`; }
+  $('#modal').innerHTML=`<div class="mbox"><div class="dhead"><div class="row" style="justify-content:space-between;align-items:flex-start"><h3>WhatsApp a ${tot} ${tot===1?'cliente':'clientes'}</h3><button class="btn" id="mclose">Cerrar</button></div>
+    <div class="small mute" style="margin-top:4px;max-width:75ch">Cada clic abre el chat del cliente con el mensaje ya escrito; en WhatsApp apretás Enviar y volvés acá. La app registra el envío en la ficha${S.config.usuario?', a nombre de '+esc(S.config.usuario)+',':''} y pasa al siguiente. <b>Total de la tanda: ${fmt(deudaT)}</b> de deuda, ${fmt(vencT)} vencido.</div>
+    <div class="formgrid" style="margin:12px 0 0"><label class="f">Mensaje<select id="mtpl">${Object.entries(TP).map(([k,v])=>`<option value="${k}" ${M.tpl===k?'selected':''}>${v}</option>`).join('')}</select></label>
+     ${S.config.usuario?'':'<label class="f">Tu nombre (va en el mensaje)<input type="text" id="mq" list="usrL" placeholder="Quién envía" autocomplete="off" class="falta"></label>'}
+     <label class="f">Abrir con<select id="mmodo">${Object.entries(MD).map(([k,v])=>`<option value="${k}" ${(S.config.waModo||'wame')===k?'selected':''}>${v}</option>`).join('')}</select></label></div>
+    <div class="bar" style="margin-bottom:0"><span style="width:${tot?(nOk+nSk)/tot*100:0}%;background:#1F9D55"></span></div></div>
+   <div class="dbody" style="overflow:visible">${top}
+    <div class="panel tblwrap" style="margin-top:12px"><table><thead><tr><th>Estado</th><th>Cliente</th><th>Celular</th><th class="num">Deuda total</th><th class="num">Vencido</th><th></th></tr></thead><tbody id="mlist">
+    ${M.list.map(cod=>{ const t=telWA(cod), a=A[cod], d=M.done[cod];
+      return `<tr><td>${d==='ok'?'<span class="tag ok">chat abierto</span>':d==='skip'?'<span class="tag">salteado</span>':!t?'<span class="tag bad">sin teléfono</span>':cod===next?'<span class="tag info">siguiente</span>':'<span class="tag">pendiente</span>'}</td>
+       <td><b>${esc(S.clientes[cod].nombre)}</b><div class="cod">${esc(cod)} ${aviso(cod)}</div></td>
+       <td class="small">${t?esc(t.ver)+telTag(t):celdaWA(cod)}</td><td class="num">${fmt(a.deudaNueva)}</td><td class="num">${fmt(a.vencido)}</td>
+       <td>${d?`<button class="btn sm" data-volver="${esc(cod)}">${d==='ok'?'Repetir':'Incluir'}</button>`:t&&cod!==next?`<button class="btn sm" data-saltar="${esc(cod)}">Saltar</button>`:''}</td></tr>`}).join('')}</tbody></table></div></div></div>`;
+  $('#mclose').onclick=()=>cerrarMasivo(false); const fin=$('#mfin'); if(fin) fin.onclick=()=>cerrarMasivo(true);
+  const mq=$('#mq'); if(mq) mq.onchange=e=>{ setUsuario(e.target.value); renderMasivo(); };
+  $('#mtpl').onchange=e=>{M.tpl=e.target.value;renderMasivo();}; $('#mmodo').onchange=e=>{S.config.waModo=e.target.value;save();};
+  const nx=$('#mnext'); if(nx){ nx.onclick=()=>{ if(enviarWA(next,false,M.tpl,true)) M.done[next]='ok'; renderMasivo(); const b=$('#mnext')||$('#mfin'); if(b) b.focus(); };
+    $('#mskip').onclick=()=>{ M.done[next]='skip'; renderMasivo(); const b=$('#mnext')||$('#mfin'); if(b) b.focus(); }; }
+  const tb=$('#mlist'); bindTel(tb,()=>{ renderMasivo(); const n=$('#mlist .telin')||$('#mnext'); if(n) n.focus(); });
+  tb.onclick=e=>{ const v=e.target.closest('[data-volver]'); if(v){ delete M.done[v.dataset.volver]; renderMasivo(); return; } const s=e.target.closest('[data-saltar]'); if(s){ M.done[s.dataset.saltar]='skip'; renderMasivo(); } };
+}
+
+// ---------- COBRANZA ----------
+function vCobranza(){
+  const m=$('#main'); if(!hasData()){m.innerHTML=emptyCTA();return;}
+  const f=ui.cob, all=cobrables(), nMod=all.filter(a=>a.cond).length;
+  const vends=[...new Set(all.map(a=>S.clientes[a.cod].vend))].filter(Boolean).sort();
+  const resps=[...new Set(all.map(a=>peekG(a.cod).resp).filter(Boolean))].sort();
+  let L=all.filter(a=>{const c=S.clientes[a.cod]; if(f.sem!=='todos'&&a.sem!==f.sem)return false; if(f.vend&&c.vend!==f.vend)return false;
+    const g=peekG(a.cod); if(f.estado==='__promv'){ if(!promesaVencida(a.cod))return false;} else if(f.estado==='__alerta'){ const p=prom(a.cod); if(!p||p.est!=='alerta')return false; } else if(f.estado&&g.estado!==f.estado)return false;
+    if(f.resp==='__no'){ if(g.resp)return false; } else if(f.resp&&g.resp!==f.resp)return false;
+    if(f.cond==='__no'){ if(a.cond)return false; } else if(f.cond==='mod'&&!a.cond)return false;
+    if(f.q&&!coincide(a.cod,f.q.toLowerCase()))return false; return true;});
+  const key={nombre:a=>S.clientes[a.cod].nombre,deudaNueva:a=>a.deudaNueva,vencido:a=>a.vencido,diasMax:a=>a.diasMax,ult:a=>(ultima(a.cod)||{}).f||'',estado:a=>peekG(a.cod).estado}[f.sort];
+  L.sort((x,y)=>{const a=key(x),b=key(y);return (a<b?-1:a>b?1:0)*f.dir});
+  const c={todos:all.length}; all.forEach(a=>c[a.sem]=(c[a.sem]||0)+1);
+  const sD=L.reduce((s,a)=>s+a.deudaNueva,0), sV=L.reduce((s,a)=>s+a.vencido,0), nAl=promAlertas().length;
+  const enExc=f.q?Object.values(A).filter(a=>a.excl&&coincide(a.cod,f.q.toLowerCase())).length:0;
+  const th=(k,t,n)=>`<th class="${n?'num':''}" data-s="${k}">${t}${f.sort===k?(f.dir<0?' ↓':' ↑'):''}</th>`;
+  m.innerHTML=`<h2>Cuentas a cobrar</h2><p class="sub">Clientes con facturas emitidas ${perTxt()}. El color lo da el comprobante más atrasado, pero cada fila trae toda la deuda del cliente: lo vencido y lo que está por vencer. Tocá una fila para abrir la ficha y cargar la gestión; tildá varios para mandarles WhatsApp, asignarles responsable o pasarlos a Acuerdos especiales.</p>
+  <div class="filters"><input type="search" id="fq" placeholder="Buscar cliente, código, CUIT u observación" value="${esc(f.q)}">
+    <span class="chipsel" id="fsem">${['todos'].concat(SEMK).map(s=>`<button data-v="${s}" class="${f.sem===s?'on':''}" title="${s==='todos'?'':semRango(s)}">${s==='todos'?'Todos':`<span class="dot" style="background:var(--${s})"></span>${semCorto(s)}`} <span class="mute">${c[s]||0}</span></button>`).join(' ')}</span>
+    <select id="fest"><option value="">Todos los estados</option>${ESTADOS.map(e=>`<option ${f.estado===e?'selected':''}>${e}</option>`).join('')}<option value="__alerta" ${f.estado==='__alerta'?'selected':''}>Promesa incumplida · alerta (${nAl})</option><option value="__promv" ${f.estado==='__promv'?'selected':''}>Promesa vencida (todas)</option></select>
+    <select id="fresp" aria-label="Responsable"><option value="">Todos los responsables</option>${resps.map(v=>`<option ${f.resp===v?'selected':''}>${esc(v)}</option>`).join('')}<option value="__no" ${f.resp==='__no'?'selected':''}>Sin responsable</option></select>
+    ${nMod||f.cond?`<select id="fcond" aria-label="Condición de pago"><option value="">Todas las condiciones de pago</option><option value="mod" ${f.cond==='mod'?'selected':''}>Condición modificada en la app (${nMod})</option><option value="__no" ${f.cond==='__no'?'selected':''}>Vencimiento de Tango</option></select>`:''}
+    <select id="fven"><option value="">Todos los vendedores</option>${vends.map(v=>`<option ${f.vend===v?'selected':''}>${esc(v)}</option>`).join('')}</select></div>
+  <div class="totline"><span><b>${L.length}</b> ${L.length===1?'cliente':'clientes'}</span><span>Deuda total <b>${fmt(sD)}</b></span><span>Vencido <b style="color:var(--rojo)">${fmt(sV)}</b></span><span>A vencer <b>${fmt(sD-sV)}</b></span>${enExc?`<a href="#" id="verExc" class="small" style="color:var(--accent)">${enExc} ${enExc===1?'coincidencia':'coincidencias'} en Acuerdos especiales</a>`:''}</div>
+  <div class="panel tblwrap"><table><thead><tr>${selTh()}<th></th>${th('nombre','Cliente')}${th('deudaNueva','Deuda total',1)}${th('vencido','Vencido',1)}${th('diasMax','Días',1)}${th('estado','Estado')}${th('ult','Última gestión')}<th>WhatsApp</th></tr></thead>
+  <tbody>${L.slice(0,f.lim).map(a=>{const cl=S.clientes[a.cod],u=ultima(a.cod),g=peekG(a.cod);
+    return `<tr class="click${ui.sel.has(a.cod)?' sel':''}" data-c="${a.cod}" data-selrow="${esc(a.cod)}">${selTd(a.cod)}<td>${semHTML(a.sem)}</td><td><div class="nm">${esc(cl.nombre)}</div><div class="cod">${a.cod} · vend ${esc(cl.vend)}${g.resp?' · resp. '+esc(g.resp):''}${a.cond?` · <span class="tag" title="Condición de pago modificada en la app para este cliente">cobra ${esc(condTxt(a.cond))}</span>`:''}${a.incViejos?' <span class="tag info" title="La deuda anterior al período se revisó en Depurar y se cobra junto con el resto">incluye deuda anterior</span>':''}${a.flags.some(x=>x!=='imputar'&&x!=='residuos')?' · <span class="tag warn">tiene viejos</span>':''}${a.flags.includes('imputar')?' <span class="tag ok">imputar créditos</span>':''}</div>${obsLine(a.cod)}</td>
+    <td class="num">${fmt(a.deudaNueva)}${Math.abs(a.saldoTotal-a.deudaNueva)>=1?`<div class="small mute" title="Saldo de toda la cuenta en el listado: suma también lo anterior al período y resta los créditos sin imputar">saldo cuenta ${fmt(a.saldoTotal)}</div>`:''}</td>
+    <td class="num">${a.vencido?fmt(a.vencido):'<span class="mute">—</span>'}${a.vencido&&a.aVencer>=1?`<div class="small mute">a vencer ${fmt(a.aVencer)}</div>`:''}</td><td class="num">${a.vencido?a.diasMax:(a.proxVto?'<span class="mute small">vence '+fd(a.proxVto)+'</span>':'')}</td>
+    <td>${estadoTag(a.cod)}</td><td class="small">${u?`<b>${fd(u.f)}</b> ${esc(u.tipo)}${u.usuario?' · '+esc(u.usuario):''}<div class="mute">${esc((u.texto||'').slice(0,60))}</div>`:'<span class="mute">—</span>'}</td>
+    <td data-telc="${a.cod}">${celdaWA(a.cod)}</td></tr>`}).join('')}</tbody>
+  ${L.length?`<tfoot><tr><td colspan="3">Total · ${L.length} ${L.length===1?'cliente':'clientes'}</td><td class="num">${fmt(sD)}</td><td class="num">${fmt(sV)}</td><td colspan="4"></td></tr></tfoot>`:''}</table>
+  ${L.length>f.lim?`<div style="padding:10px"><button class="btn" id="more">Mostrar más (${L.length-f.lim})</button></div>`:''}${!L.length?`<div class="empty">${f.estado==='__alerta'?'Ninguna promesa incumplida. Bien.':'Ningún cliente con estos filtros.'}</div>`:''}</div>`;
+  $('#fq').oninput=e=>{f.q=e.target.value;clearTimeout(f._t);f._t=setTimeout(()=>{vCobranza();const i=$('#fq');i.focus();i.setSelectionRange(i.value.length,i.value.length)},200)};
+  $('#fsem').onclick=e=>{const b=e.target.closest('button');if(b){f.sem=b.dataset.v;vCobranza();}};
+  $('#fest').onchange=e=>{f.estado=e.target.value;vCobranza()}; $('#fven').onchange=e=>{f.vend=e.target.value;vCobranza()};
+  $('#fresp').onchange=e=>{f.resp=e.target.value;vCobranza()}; const fc=$('#fcond'); if(fc) fc.onchange=e=>{f.cond=e.target.value;vCobranza()};
+  const ve=$('#verExc'); if(ve) ve.onclick=e=>{e.preventDefault();tab='acuerdos';ui.acu.f='todos';render();};
+  bindSel(m.querySelector('table'));
+  m.querySelector('thead').onclick=e=>{ const t=e.target.closest('th[data-s]');if(!t)return;if(f.sort===t.dataset.s)f.dir*=-1;else{f.sort=t.dataset.s;f.dir=t.dataset.s==='nombre'?1:-1;}vCobranza()};
+  const tb=m.querySelector('tbody');
+  tb.onclick=e=>{const w=e.target.closest('[data-wa]');if(w){e.stopPropagation();enviarWA(w.dataset.wa);return;}
+    const cm=e.target.closest('[data-cambiar]'); if(cm){ const td=cm.closest('td'); td.innerHTML=celdaWA(cm.dataset.cambiar,true); td.querySelector('input').focus(); return; }
+    if(e.target.closest('[data-telc]')) return;
+    const r=e.target.closest('tr[data-c]');if(r)openCli(r.dataset.c)};
+  bindTel(tb,(cod,td)=>{ td.innerHTML=celdaWA(cod); selBar(); });
+  selSync();
+  const mo=$('#more'); if(mo) mo.onclick=()=>{f.lim+=200;vCobranza()};
+}
+
+// ---------- ACUERDOS ESPECIALES ----------
+// Clientes que no se gestionan por la vía normal. Cada uno lleva el motivo y, si corresponde, una fecha de corte para volver a mirarlo.
+function vAcuerdos(){
+  const m=$('#main'); if(!hasData()){m.innerHTML=emptyCTA();return;}
+  const f=ui.acu, all=Object.values(A).filter(a=>a.excl), X=cod=>peekG(cod).excl||{}, toca=a=>{const r=X(a.cod).rev; return !!r&&r<=hoy();};
+  const nRev=all.filter(toca).length, nSin=all.filter(a=>!X(a.cod).rev).length;
+  const L=all.filter(a=>f.f==='rev'?toca(a):f.f==='sin'?!X(a.cod).rev:true).sort((a,b)=>{ const ra=X(a.cod).rev||'9999', rb=X(b.cod).rev||'9999'; return ra<rb?-1:ra>rb?1:b.deudaNueva-a.deudaNueva; });
+  const sD=L.reduce((s,a)=>s+a.deudaNueva,0), sV=L.reduce((s,a)=>s+a.vencido,0);
+  const corte=r=>{ if(!r) return '<div class="small mute">sin fecha: no se gestiona</div>'; const d=diasEntre(r,hoy()); return d>=0?`<div class="small promal">llegó la fecha${d?' · '+haceDias(d):' · hoy'}: revisar</div>`:`<div class="small mute">${d===-1?'falta 1 día':'faltan '+(-d)+' días'}</div>`; };
+  m.innerHTML=`<h2>Acuerdos especiales</h2><p class="sub">Clientes que no se gestionan por la vía normal porque tienen un acuerdo especial. No aparecen en A cobrar, en los totales del Resumen, en las alertas de promesas ni en los envíos de WhatsApp. En cada uno queda escrito por qué y, si corresponde, una fecha de corte: cuando llega, la app avisa para decidir si se gestiona o sigue el acuerdo. El Excel semanal sigue actualizando sus comprobantes.</p>
+  <div class="filters"><span class="chipsel" id="asw">${[['todos','Todos',all.length],['rev','Para revisar',nRev],['sin','Sin fecha de corte',nSin]].map(([k,t,n])=>`<button data-v="${k}" class="${f.f===k?'on':''}">${t} <span class="mute">${n}</span></button>`).join(' ')}</span></div>
+  <div class="totline"><span><b>${L.length}</b> ${L.length===1?'cliente':'clientes'}</span><span>Deuda total <b>${fmt(sD)}</b></span><span>Vencido <b>${fmt(sV)}</b></span></div>
+  <div class="panel tblwrap"><table><thead><tr><th></th><th>Cliente</th><th>Por qué tiene acuerdo y no se gestiona</th><th>Fecha de corte</th><th class="num">Deuda total</th><th class="num">Vencido</th><th>Desde</th><th></th></tr></thead><tbody>
+  ${L.map(a=>{const cl=S.clientes[a.cod], x=X(a.cod);
+    return `<tr data-c="${esc(a.cod)}"><td>${semHTML(a.sem)}</td><td data-open="1" style="cursor:pointer"><div class="nm">${esc(cl.nombre)}</div><div class="cod">${esc(a.cod)} · vend ${esc(cl.vend)}</div>${obsLine(a.cod)}</td>
+    <td><textarea rows="2" data-mot="${esc(a.cod)}" placeholder="Ej.: paga con cheques a 90 días, lo maneja Gerencia" aria-label="Motivo del acuerdo">${esc(x.motivo||'')}</textarea></td>
+    <td><input type="date" data-rev="${esc(a.cod)}" value="${esc(x.rev||'')}" aria-label="Fecha de corte" title="Fecha en la que hay que volver a mirar este acuerdo. Vacía: no se gestiona.">${corte(x.rev)}</td>
+    <td class="num">${fmt(a.deudaNueva)}</td><td class="num">${a.vencido?fmt(a.vencido)+`<div class="small mute">${a.diasMax} días</div>`:'<span class="mute">—</span>'}</td>
+    <td class="small">${fd(x.f)}${x.usuario?'<div class="mute">'+esc(x.usuario)+'</div>':''}</td><td><button class="btn sm" data-volver="${esc(a.cod)}">Volver a cobrar</button></td></tr>`}).join('')}</tbody></table>
+  ${!L.length?`<div class="empty">${all.length?'Ninguno en este grupo.':'Ningún cliente con acuerdo especial. Para pasar uno acá, abrí su ficha y tocá «No cobrar (acuerdo especial)», o tildá varios en cualquier pestaña y usá el botón de la barra de abajo.'}</div>`:''}</div>`;
+  $('#asw').onclick=e=>{const b=e.target.closest('button'); if(b){f.f=b.dataset.v; vAcuerdos();}};
+  const tb=m.querySelector('tbody');
+  tb.onchange=e=>{ const cm=e.target.dataset.mot, cr=e.target.dataset.rev, cod=cm||cr; if(!cod) return; const x=G(cod).excl=Object.assign({f:hoy()},G(cod).excl||{});
+    if(cm){ x.motivo=e.target.value.trim(); save(); toast('Motivo guardado'); }
+    else { x.rev=e.target.value; G(cod).log.push({id:Date.now()+'_r',f:ahora(),tipo:'Sistema',texto:x.rev?'Acuerdo especial: fecha de corte '+fd(x.rev)+'.':'Acuerdo especial: se quitó la fecha de corte.',usuario:S.config.usuario||'',auto:true}); save(); vAcuerdos(); toast(x.rev?'Fecha de corte guardada':'Sin fecha de corte'); } };
+  tb.onclick=e=>{ const v=e.target.closest('[data-volver]'); if(v){ quitarExcl(v.dataset.volver); vAcuerdos(); toast('Volvió a A cobrar'); return; } const o=e.target.closest('[data-open]'); if(o) openCli(o.closest('tr').dataset.c); };
+  selSync();
+}
+
+// ---------- DEPURAR ----------
+function vDepurar(){
+  const m=$('#main'); if(!hasData()){m.innerHTML=emptyCTA();return;}
+  const f=ui.dep; if(f.vista==='res') return vResueltos(); const all=Object.values(A).filter(depPend);
+  const cnt={todos:all.length}; all.forEach(a=>a.flags.forEach(x=>cnt[x]=(cnt[x]||0)+1));
+  let L=all.filter(a=>{ if(f.flag!=='todos'&&!a.flags.includes(f.flag))return false; const g=peekG(a.cod); if(f.estado&&(g.dep||{}).estado!==f.estado)return false;
+    if(f.q&&!coincide(a.cod,f.q.toLowerCase()))return false; return true;})
+    .sort((a,b)=>Math.abs(b.saldoViejo)-Math.abs(a.saldoViejo));
+  const sVj=L.reduce((s,a)=>s+a.saldoViejo,0), sTt=L.reduce((s,a)=>s+a.saldoTotal,0);
+  m.innerHTML=`<h2>Depuración de cuentas</h2><p class="sub">Comprobantes anteriores al ${fd(PER().desde)}, créditos sin imputar y residuos que ensucian el listado. Marcá cada caso a medida que se pide el ajuste en el sistema. Cuando el Excel semanal ya no lo trae, pasa solo a Resueltos. Si la deuda vieja de un cliente ya se revisó y es real, «Pasar a cobrar» la suma en el momento a su cuenta de A cobrar y al mensaje.</p>${depSwitch()}
+  <div class="filters"><input type="search" id="dq" placeholder="Buscar cliente, código, CUIT u observación" value="${esc(f.q)}">
+    <select id="dflag"><option value="todos">Todos los motivos (${cnt.todos})</option>${Object.entries(FLAGS).map(([k,[t]])=>`<option value="${k}" ${f.flag===k?'selected':''}>${t} (${cnt[k]||0})</option>`).join('')}</select>
+    <select id="dest"><option value="">Cualquier estado</option>${ESTADOS_DEP.filter(e=>e!=='Resuelto').map(e=>`<option ${f.estado===e?'selected':''}>${e}</option>`).join('')}</select>
+    <button class="btn" id="dexp">Exportar a Excel</button></div>
+  <div class="totline"><span><b>${L.length}</b> ${L.length===1?'caso':'casos'}</span><span>Saldo viejo <b>${fmt2(sVj)}</b></span><span>Saldo total de las cuentas <b>${fmt2(sTt)}</b></span></div>
+  <div class="panel tblwrap"><table><thead><tr>${selTh()}<th>Cliente</th><th>Motivos</th><th class="num">Saldo viejo</th><th class="num">Saldo total</th><th>Último mov.</th><th>Estado</th><th>Nota</th></tr></thead>
+  <tbody>${L.slice(0,f.lim).map(a=>{const c=S.clientes[a.cod],g=peekG(a.cod),d=g.dep||{estado:'Pendiente',nota:''};
+   return `<tr data-c="${a.cod}" data-selrow="${esc(a.cod)}" class="${ui.sel.has(a.cod)?'sel':''}">${selTd(a.cod)}<td class="click" style="cursor:pointer" data-open="1"><div class="nm">${esc(c.nombre)}${a.excl?' <span class="tag info">acuerdo especial</span>':''}</div><div class="cod">${a.cod} · ${a.viejos.length} viejos / ${a.nuevos.length} del período${a.deudaNueva>0&&!a.excl?` · <span class="tag ok" title="Este cliente también está en A cobrar">en A cobrar ${fmt(a.deudaNueva)}</span>`:''}</div>${obsLine(a.cod)}</td>
+   <td>${a.flags.map(x=>`<span class="tag ${FLAGS[x][1]}">${FLAGS[x][0]}</span>`).join('')}</td>
+   <td class="num ${a.saldoViejo<0?'neg':''}">${fmt2(a.saldoViejo)}</td><td class="num ${a.saldoTotal<0?'neg':''}">${fmt2(a.saldoTotal)}</td>
+   <td class="small">${fd(a.items[a.items.length-1].emi)}</td>
+   <td><select data-dep="${a.cod}">${ESTADOS_DEP.map(e=>`<option ${d.estado===e?'selected':''}>${e}</option>`).join('')}</select></td>
+   <td><input type="text" data-nota="${a.cod}" value="${esc(d.nota)}" placeholder="Ej: anular REC 0001-17016" style="min-width:180px">${a.viejos.some(i=>i.imp>=S.config.residuo)?`<div style="margin-top:4px"><button class="btn sm" data-pasar="${a.cod}" title="La deuda anterior al período ya se revisó y es real: se cobra junto con el resto">Pasar a cobrar</button></div>`:''}</td></tr>`}).join('')}</tbody></table>
+  ${L.length>f.lim?`<div style="padding:10px"><button class="btn" id="dmore">Mostrar más (${L.length-f.lim})</button></div>`:''}${!L.length?'<div class="empty">Nada para depurar con estos filtros.</div>':''}</div>`;
+  $('#dq').oninput=e=>{f.q=e.target.value;clearTimeout(f._t);f._t=setTimeout(()=>{vDepurar();const i=$('#dq');i.focus();i.setSelectionRange(i.value.length,i.value.length)},200)};
+  bindDepSwitch(); bindSel(m.querySelector('table')); selSync();
+  $('#dflag').onchange=e=>{f.flag=e.target.value;vDepurar()}; $('#dest').onchange=e=>{f.estado=e.target.value;vDepurar()};
+  const tb=m.querySelector('tbody');
+  tb.onchange=e=>{const s=e.target.dataset.dep,n=e.target.dataset.nota; if(s){setDep(s,e.target.value);toast(e.target.value==='Resuelto'?'Pasó a Resueltos':'Estado actualizado');if(e.target.value==='Resuelto'){recalc();vDepurar();}} if(n){G(n).dep=Object.assign(G(n).dep||{},{nota:e.target.value});save();}};
+  tb.onclick=e=>{const ps=e.target.closest('[data-pasar]'); if(ps){ pasarACobrar(ps.dataset.pasar); vDepurar(); toast('Pasó a A cobrar con la deuda anterior incluida'); return; }
+    const t=e.target.closest('[data-open]');if(t)openCli(t.closest('tr').dataset.c,'viejos')};
+  const mo=$('#dmore'); if(mo) mo.onclick=()=>{f.lim+=200;vDepurar()};
+  $('#dexp').onclick=()=>{ const rows=[]; L.forEach(a=>{const c=S.clientes[a.cod],d=peekG(a.cod).dep||{}; a.viejos.concat(a.items.filter(i=>Math.abs(i.imp)<S.config.residuo&&i.emi>=PER().desde)).forEach(i=>rows.push({COD_CLI:a.cod,RAZON_SOC:c.nombre,CUIT:(ficha(a.cod)||{}).cuit||'',OBSERVACIONES:(ficha(a.cod)||{}).obs||'',MOTIVOS:a.flags.map(x=>FLAGS[x][0]).join(' / '),T_COMP:i.tipo,N_COMP:i.nro,FECHA_EMI:fd(i.emi),IMPORTE:i.imp,ESTADO_DEP:d.estado||'Pendiente',NOTA:d.nota||''}))});
+    descargarXLSX(rows,'depuracion_'+hoy()+'.xlsx'); };
+}
+
+function setDep(cod,estado){ const d=G(cod).dep=Object.assign({estado:'Pendiente',nota:''},G(cod).dep||{}); d.estado=estado;
+  if(estado==='Resuelto'){ d.resueltoEn=hoy(); d.auto=false; } else { delete d.resueltoEn; delete d.auto; delete d.cobrar; } save(); }
+// La deuda anterior al período ya se revisó y es real: sale de Depurar y se cobra junto con el resto (A cobrar se actualiza en el momento)
+function pasarACobrar(cod){ const g=G(cod), d=g.dep=Object.assign({estado:'Pendiente',nota:''},g.dep||{}); d.estado='Resuelto'; d.cobrar=true; d.resueltoEn=hoy(); d.auto=false;
+  g.log.push({id:Date.now()+'_d',f:ahora(),tipo:'Sistema',texto:'Depuración: la deuda anterior al período se revisó y pasa a A cobrar junto con el resto.',usuario:S.config.usuario||'',auto:true}); save(); recalc(); }
+function depSwitch(){ const nRes=Object.values(S.gest).filter(g=>g.dep&&g.dep.estado==='Resuelto').length, nPen=Object.values(A).filter(depPend).length;
+  return `<div class="chipsel" id="dsw" style="margin-bottom:12px"><button data-v="pend" class="${ui.dep.vista==='pend'?'on':''}">Pendientes <span class="mute">${nPen}</span></button> <button data-v="res" class="${ui.dep.vista==='res'?'on':''}">Resueltos <span class="mute">${nRes}</span></button></div>`; }
+function bindDepSwitch(){ $('#dsw').onclick=e=>{const b=e.target.closest('button'); if(b){ui.dep.vista=b.dataset.v; vDepurar();}}; }
+function vResueltos(){
+  const m=$('#main'), L=Object.entries(S.gest).filter(([c,g])=>g.dep&&g.dep.estado==='Resuelto').sort((a,b)=>(b[1].dep.resueltoEn||'')<(a[1].dep.resueltoEn||'')?-1:1);
+  m.innerHTML=`<h2>Depuración de cuentas</h2><p class="sub">Casos resueltos. "Confirmado por Excel" significa que el archivo semanal ya no trae esos comprobantes. "Marcado a mano" queda a la espera de que el próximo Excel lo confirme.</p>${depSwitch()}
+  <div class="panel tblwrap"><table><thead><tr><th>Cliente</th><th>Resuelto</th><th>Cómo</th><th>Nota</th><th></th></tr></thead><tbody>
+  ${L.map(([cod,g])=>{const a=A[cod], sigue=a&&a.flags.length, cl=S.clientes[cod]||{nombre:cod};
+   return `<tr><td><a href="#" data-open="${esc(cod)}"><b>${esc(cl.nombre)}</b></a><div class="cod">${esc(cod)}</div>${obsLine(cod)}</td><td>${fd(g.dep.resueltoEn)}</td>
+   <td>${g.dep.cobrar?'<span class="tag info">Pasó a A cobrar con la deuda anterior</span>':g.dep.auto?'<span class="tag ok">Confirmado por Excel</span>':sigue?'<span class="tag warn">Marcado a mano · sigue en el Excel</span>':'<span class="tag ok">Marcado a mano · confirmado</span>'}</td>
+   <td class="small">${esc(g.dep.nota||'')}</td><td><button class="btn sm" data-reabrir="${esc(cod)}">Reabrir</button></td></tr>`}).join('')}</tbody></table>
+  ${!L.length?'<div class="empty">Todavía no hay casos resueltos.</div>':''}</div>`;
+  bindDepSwitch(); selSync();
+  m.querySelector('tbody').onclick=e=>{const o=e.target.closest('[data-open]'); if(o){e.preventDefault();openCli(o.dataset.open,'viejos');return;} const r=e.target.closest('[data-reabrir]'); if(r){setDep(r.dataset.reabrir,'Pendiente');recalc();vResueltos();toast('Volvió a Pendientes');}};
+}
+
+// ---------- WHATSAPP ----------
+// Qué mensaje le toca a cada cliente: promesa incumplida si está en alerta; si no, según el atraso
+function plantillaPara(a){ const p=prom(a.cod); if(p&&p.est==='alerta') return 'promesa'; return !a.vencido?'preventivo':(a.sem==='rojo'||a.sem==='amarillo')?'reclamo':'recordatorio'; }
+function mensajeDe(cod,tplKey){ const a=A[cod], p=prom(cod); let k=tplKey&&tplKey!=='auto'?tplKey:plantillaPara(a); if(k==='promesa'&&!p) k=plantillaPara(a);
+  return armarMensaje(S.plantillas[k],S.clientes[cod],a,S.config.empresa,fmt2,{promesa:p?fd(p.fecha):'',gestor:S.config.usuario||'',pie:(S.config.pie||'').trim()}); }
+const TPLN={preventivo:'Preventivo (todavía no venció)',recordatorio:'Recordatorio (vencido, en verde)',reclamo:'Reclamo (amarillo y rojo)',promesa:'Promesa de pago incumplida'};
+// Grupos de la cola: los tres colores del semáforo, vencido reciente, por vencer y promesas incumplidas
+function grupoWA(a,en7){ return a.sem!=='verde'?a.sem: a.vencido>0?'verde': (a.proxVto&&a.proxVto<=en7)?'porvencer':''; }
+function colaWA(){ const f=ui.wa, lim=new Date(Date.now()-f.excluirDias*864e5).toISOString(), en7=new Date(Date.now()+7*864e5).toISOString().slice(0,10);
+  const L=f.sem==='promesa'? promAlertas().filter(enviable) : cobrables().filter(enviable).filter(a=>grupoWA(a,en7)===f.sem).filter(a=>{const p=prom(a.cod); return !(f.excluirPromesa&&p&&p.est==='vigente');});
+  return L.filter(a=>{ if(peekG(a.cod).estado==='En disputa')return false; const u=ultGest(a.cod); if(!u||u.f<lim) return true;
+      return f.sem==='promesa'&&u.f.slice(0,10)<=prom(a.cod).fecha; }) // en promesas incumplidas solo cuenta como gestión lo cargado después de la fecha prometida
+   .sort((a,b)=>b.vencido-a.vencido||b.deudaNueva-a.deudaNueva); }
+function vWA(){
+  const m=$('#main'); if(!hasData()){m.innerHTML=emptyCTA();return;}
+  const f=ui.wa, Q=colaWA(), conTel=Q.filter(a=>telWA(a.cod)), conCel=conTel.filter(a=>!telWA(a.cod).verificar), nAl=promAlertas().length;
+  const GR=[['rojo','rojo',semCorto('rojo')],['amarillo','amarillo',semCorto('amarillo')],['verde','verde','Verde · vencido'],['porvencer','gris','Verde · vence en 7 días'],['promesa','azul',`Promesa incumplida <span class="mute">${nAl}</span>`]];
+  const sD=Q.reduce((s,a)=>s+a.deudaNueva,0), sV=Q.reduce((s,a)=>s+a.vencido,0);
+  m.innerHTML=`<h2>Mensajes de cobranza por WhatsApp</h2>
+  <p class="sub">Cola de envío según semáforo. Cada envío abre WhatsApp con el mensaje armado, que trae toda la deuda del cliente (vencido, a vencer y total), y queda registrado en la ficha del cliente. Tildá varios para mandarlos en una tanda.</p>
+  <div class="note" style="margin-bottom:14px">Por ahora el envío es <b>semiautomático</b>: un clic por cliente desde tu WhatsApp. El envío 100% automático necesita la API oficial de WhatsApp Business (Meta), con plantillas aprobadas y un pequeño servidor (por ejemplo, Firebase Functions). Lo armamos en la etapa siguiente.</div>
+  <div class="filters"><span class="chipsel" id="wsem">${GR.map(([k,col,t])=>`<button data-v="${k}" class="${f.sem===k?'on':''}"><span class="dot" style="background:var(--${col})"></span>${t}</button>`).join(' ')}</span>
+   <label class="row small"><input type="checkbox" id="wprom" ${f.excluirPromesa?'checked':''}> Excluir con promesa vigente</label>
+   <label class="row small">Excluir gestionados hace menos de <input type="number" id="wdias" min="0" max="30" value="${f.excluirDias}" style="width:60px"> días</label></div>
+  <details class="panel" style="padding:10px 14px;margin-bottom:12px"><summary><b>Plantillas</b> <span class="small mute">· variables: {cliente} {gestor} {empresa} {total} {vencido} {dias} {promesa} {detalle} — el {detalle} trae toda la deuda: vencido y a vencer con sus subtotales, y el total</span></summary>
+   ${Object.keys(TPLN).map(k=>`<label class="f" style="margin-top:10px">${TPLN[k]}<textarea rows="4" data-tpl="${k}">${esc(S.plantillas[k])}</textarea></label>`).join('')}</details>
+  <div class="row" style="margin-bottom:10px"><b>${Q.length} clientes en cola</b><span>Deuda total <b>${fmt(sD)}</b> · vencido <b>${fmt(sV)}</b></span><span class="mute">${conCel.length} con celular${conTel.length>conCel.length?` · ${conTel.length-conCel.length} con número a verificar (puede ser fijo)`:''} · ${Q.length-conTel.length} sin teléfono</span><button class="btn wa" id="wnext" ${conCel.length?'':'disabled'} title="Sigue con el próximo cliente que tiene celular confirmado">Enviar al siguiente</button></div>
+  <div class="panel tblwrap"><table><thead><tr>${selTh()}<th></th><th>Cliente</th><th>Celular</th><th class="num">Deuda total</th><th class="num">Vencido</th><th>Mensaje</th><th></th></tr></thead><tbody>
+  ${Q.slice(0,150).map(a=>{const c=S.clientes[a.cod],t=telWA(a.cod);return `<tr data-selrow="${esc(a.cod)}" class="${ui.sel.has(a.cod)?'sel':''}">${selTd(a.cod)}<td>${semHTML(a.sem)}</td><td><a href="#" data-open="${a.cod}"><b>${esc(c.nombre)}</b></a><div class="cod">${a.cod}</div>${obsLine(a.cod)}</td>
+   <td class="small">${t?esc(t.ver)+telTag(t):'<span class="tag bad">sin celular</span>'}</td><td class="num">${fmt(a.deudaNueva)}</td><td class="num">${fmt(a.vencido)}</td>
+   <td><div class="msgprev">${esc(mensajeDe(a.cod))}</div></td>
+   <td>${t?`<button class="btn wa sm" data-wa="${a.cod}">Abrir WhatsApp</button>`:celdaWA(a.cod)}</td></tr>`}).join('')}</tbody></table>
+  ${!Q.length?'<div class="empty">No hay clientes pendientes de aviso en este grupo.</div>':''}</div>`;
+  $('#wsem').onclick=e=>{const b=e.target.closest('button');if(b){f.sem=b.dataset.v;vWA()}};
+  $('#wprom').onchange=e=>{f.excluirPromesa=e.target.checked;vWA()}; $('#wdias').onchange=e=>{f.excluirDias=+e.target.value||0;vWA()};
+  m.querySelectorAll('[data-tpl]').forEach(t=>t.onchange=()=>{S.plantillas[t.dataset.tpl]=t.value;save();vWA();});
+  bindSel(m.querySelector('table'));
+  m.querySelector('tbody').onclick=e=>{const w=e.target.closest('[data-wa]'); if(w){enviarWA(w.dataset.wa,true);return;} const o=e.target.closest('[data-open]'); if(o){e.preventDefault();openCli(o.dataset.open,'datos');}};
+  bindTel(m.querySelector('tbody'),()=>vWA());
+  $('#wnext').onclick=()=>{const a=colaWA().find(a=>{const t=telWA(a.cod); return t&&!t.verificar}); if(a) enviarWA(a.cod,true);};
+  selSync();
+}
+function abrirWA(t,msg){ const modo=S.config.waModo||'wame', tx=encodeURIComponent(msg), link=document.createElement('a');
+  if(modo==='app') link.href='whatsapp://send?phone='+t.wa+'&text='+tx;
+  else if(modo==='web'){ link.href='https://web.whatsapp.com/send?phone='+t.wa+'&text='+tx; link.target='wa_cobranzas'; }
+  else { link.href='https://wa.me/'+t.wa+'?text='+tx; link.target='_blank'; link.rel='noopener'; }
+  document.body.appendChild(link); link.click(); link.remove(); }
+function enviarWA(cod,rerender,tplKey,enTanda){
+  const a=A[cod], c=S.clientes[cod], t=telWA(cod);
+  if(!a||a.deudaNueva<=0){ toast('Este cliente no tiene deuda del período para reclamar.'); return false; }
+  if(a.excl){ toast('Tiene acuerdo especial: no se le envían mensajes de cobranza.'); return false; }
+  if(!enviable(a)){ toast('Tiene pagos o créditos a cuenta que cubren la deuda: hay que imputarlos antes de reclamar.'); return false; }
+  if(!requireUser()) return false;
+  if(!t){toast('Este cliente no tiene celular válido. Cargalo en la ficha.'); if(!enTanda) openCli(cod,'datos'); return false;}
+  const msg=mensajeDe(cod,tplKey);
+  abrirWA(t,msg);
+  const g=G(cod); g.log.push({id:Date.now(),f:ahora(),tipo:'WhatsApp enviado',texto:msg,usuario:S.config.usuario||'',auto:true}); asignar(cod);
+  if(g.estado==='Sin gestionar') g.estado='Mensaje enviado'; save(); toast('Mensaje registrado en la ficha de '+c.nombre);
+  if(enTanda) return true;
+  if(rerender||tab==='cobranza') render(); if(ui.drawer===cod) renderDrawer(); return true;
+}
+
+// ---------- IMPORTAR ----------
+function vImportar(){
+  const m=$('#main'), p=ui.pend, li=lastCob(), nm=N.meta;
+  m.innerHTML=`<h2>Importar</h2><p class="sub">Subí acá el <b>listado semanal de cobranzas</b> o la <b>nómina de clientes</b>: la app reconoce cuál es por las columnas. Ninguna de las dos cargas toca las gestiones, notas, promesas ni los celulares corregidos a mano.</p>
+  <label class="drop" id="drop"><input type="file" id="file" accept=".xlsx,.xls,.csv" class="hidden"><b>Arrastrá el Excel acá</b><div class="mute">listado de cobranzas o nómina de clientes · o tocá para elegirlo</div></label>
+  <div id="diff" style="margin-top:14px">${p?(p.tipo==='nomina'?nominaHTML(p):diffHTML(p)):''}</div>
+  <div class="grid2" style="margin-top:14px">
+   <div class="panel" style="padding:12px 14px"><b>Listado de cobranzas</b> ${li?'<span class="tag ok">cargado</span>':'<span class="tag warn">falta</span>'}
+    <div class="small" style="margin-top:4px">${li?`${esc(li.archivo)} · ${fd(li.fecha)} · ${li.total} comprobantes`:'Todavía no se cargó.'}</div>
+    <div class="small mute" style="margin-top:4px">Se sube todas las semanas. Compara comprobante por comprobante (cliente + tipo + número): agrega los nuevos, actualiza importes y marca como saldados los que ya no vienen.</div></div>
+   <div class="panel" style="padding:12px 14px"><b>Nómina de clientes</b> ${nm?'<span class="tag ok">cargada</span>':'<span class="tag warn">falta</span>'}
+    <div class="small" style="margin-top:4px">${nm?`${esc(nm.archivo)} · ${fd(nm.fecha)} · ${nm.total} clientes, ${nm.conObs} con observaciones${nm.parcial?' · guardada solo para los clientes del listado':''}`:'Todavía no se cargó.'}</div>
+    <div class="small mute" style="margin-top:4px">Trae las observaciones (cómo opera cada cliente), más teléfonos para WhatsApp, email y CUIT. Se cruza por código de cliente. Volvé a subirla cuando cambien las fichas en el sistema.</div></div>
+  </div>
+  <h2 style="margin-top:24px;font-size:17px">Historial de importaciones</h2>
+  <div class="panel tblwrap"><table><thead><tr><th>Fecha</th><th>Archivo</th><th>Tipo</th><th class="num">Registros</th><th class="num">Nuevos</th><th class="num">Cambiados</th><th class="num">Saldados</th></tr></thead><tbody>
+  ${S.imports.map(i=>i.tipo==='nomina'?`<tr><td>${fd(i.fecha)}</td><td>${esc(i.archivo)}</td><td>Nómina</td><td class="num">${i.total}</td><td class="num mute" colspan="3">${i.conObs} con observaciones</td></tr>`
+    :`<tr><td>${fd(i.fecha)}</td><td>${esc(i.archivo)}</td><td>Cobranzas</td><td class="num">${i.total}</td><td class="num">${i.nuevos}</td><td class="num">${i.cambiados}</td><td class="num">${i.saldados}</td></tr>`).join('')||'<tr><td colspan="7" class="mute">Todavía no se importó nada.</td></tr>'}</tbody></table></div>
+  <div class="row" style="margin-top:16px"><button class="btn" id="bk">Descargar respaldo (JSON)</button>${FB.admin?'<label class="btn">Subir respaldo (reemplaza todo)<input type="file" id="rs" accept=".json" class="hidden"></label>':''}</div>
+  ${FB.admin&&!hasData()?'<div class="note" style="margin-top:10px">Para traer lo que ya cargaste en la versión anterior: bajá ahí el respaldo (JSON) y subilo acá con «Subir respaldo».</div>':''}`;
+  const dr=$('#drop'), fi=$('#file');
+  fi.onchange=()=>fi.files[0]&&leer(fi.files[0]);
+  dr.ondragover=e=>{e.preventDefault();dr.classList.add('over')}; dr.ondragleave=()=>dr.classList.remove('over');
+  dr.ondrop=e=>{e.preventDefault();dr.classList.remove('over');const f=e.dataTransfer.files[0];if(f)leer(f)};
+  const ok=$('#okImp'); if(ok) ok.onclick=p&&p.tipo==='nomina'?confirmarNomina:confirmarImport; const cx=$('#cxImp'); if(cx) cx.onclick=()=>{ui.pend=null;vImportar()};
+  $('#bk').onclick=()=>descargar(new Blob([JSON.stringify(Object.assign({},S,{nomina:N}))],{type:'application/json'}),'cobranzas_respaldo_'+hoy()+'.json');
+  const rs=$('#rs'); if(rs) rs.onchange=async e=>{ let s; try{ s=JSON.parse(await e.target.files[0].text()); if(!s.v||!s.comps) throw new Error('formato'); }catch(err){ toast('El archivo no es un respaldo válido.'); return; }
+    if(!confirm('Esto reemplaza TODOS los datos compartidos (comprobantes, gestiones y nómina) por los del respaldo, para todo el equipo. ¿Seguir?')) return;
+    try{ const u=S.config.usuario; N=s.nomina&&s.nomina.f?s.nomina:{meta:null,f:{}}; delete s.nomina; Object.values(s.gest||{}).forEach(g=>{ g.log=arr(g.log); }); S=normalizar(s); S.config.usuario=u; if(u) addGestor(u);
+      toast('Subiendo el respaldo…'); await subirTodo(); recalc(); tab='resumen'; render(); toast('Respaldo cargado: ya lo ve todo el equipo'); }
+    catch(err){ toast('No se pudo subir el respaldo: '+msgErr(err)); } };
+}
+// Vista previa del cruce de la nómina con los clientes del listado
+function nominaHTML(p){ const r=p.res, n=p.nom, nom=c=>esc((S.clientes[c]||{}).nombre||c);
+  const blk=(arr,tit,desc,cls,extra)=>`<div class="panel" style="padding:12px 14px"><div class="row" style="justify-content:space-between"><b>${tit}</b><span class="tag ${cls}">${arr.length}</span></div><div class="small mute">${desc}</div>
+    ${arr.length?`<details style="margin-top:6px"><summary class="small">Ver clientes</summary><ul class="list small">${arr.slice(0,80).map(c=>`<li>${nom(c)}<span class="mute">${extra?extra(c):esc(c)}</span></li>`).join('')}${arr.length>80?`<li class="mute">y ${arr.length-80} más</li>`:''}</ul></details>`:''}</div>`;
+  const F=n.fichas, fx=c=>fichaDe(F,c)||{};
+  return `<div class="panel" style="padding:16px"><b>${esc(p.archivo)}</b> · nómina de clientes · ${n.total} clientes leídos, ${n.conObs} con observaciones
+   ${r.enListado?`<div class="kpis" style="margin-top:12px">
+    <div class="kpi panel"><div class="l">Clientes del listado encontrados</div><div class="v">${r.conFicha} <span class="small mute">de ${r.enListado}</span></div><div class="l">se cruzan por código de cliente</div></div>
+    <div class="kpi panel"><div class="l">Con observaciones</div><div class="v">${r.conObs}</div><div class="l">se ven en la ficha y en los listados${r.obsCambian?` · ${r.obsCambian} cambiaron desde la nómina anterior`:''}</div></div>
+    <div class="kpi panel"><div class="l">Con celular para WhatsApp</div><div class="v">${r.celDespues}</div><div class="l">solo con el listado: ${r.celAntes} · la nómina suma ${r.ganan.length}</div></div>
+    <div class="kpi panel"><div class="l">Sin ningún teléfono</div><div class="v">${r.sinTelDespues}</div><div class="l">solo con el listado: ${r.sinTelAntes}</div></div></div>
+   <div class="grid2">
+    ${blk(r.ganan,'Ganan un celular con la nómina','No tenían celular claro en el listado y la nómina trae uno.','ok',c=>esc((mejorTel(S.clientes[c],fx(c))||{}).ver||''))}
+    ${blk(r.sinFicha,'No figuran en la nómina','Tienen comprobantes en el listado pero su código no está en este archivo.','warn')}
+    ${blk(r.inh,'Inhabilitados con saldo deudor','Figuran con fecha de inhabilitación en la nómina y todavía deben.','bad',c=>'desde '+fd(fx(c).inh))}
+    ${blk(r.dup,'Comparten CUIT con otro código','Posibles clientes duplicados: conviene revisar si la deuda está repartida entre códigos.','info',c=>'también '+esc((fx(c).dup||[]).join(', ')))}</div>`
+   :'<div class="note" style="margin-top:12px">Todavía no cargaste el listado de cobranzas. La nómina queda guardada y se cruza sola cuando lo subas.</div>'}
+   ${n.repetidos?`<div class="small mute" style="margin-top:8px">${n.repetidos} fila(s) con código repetido en el archivo: queda la que no dice "no usar".</div>`:''}
+   <div class="row" style="margin-top:14px"><button class="btn pri" id="okImp">Cargar nómina</button><button class="btn" id="cxImp">Cancelar</button></div></div>`; }
+function confirmarNomina(){ const p=ui.pend; if(!p||p.tipo!=='nomina') return;
+  N={meta:{archivo:p.archivo,fecha:hoy(),total:p.nom.total,conObs:p.nom.conObs},f:p.nom.fichas}; ui.pend=null; let msg=`Nómina cargada: ${p.res.conObs} clientes del listado con observaciones`;
+  if(!saveN()){ const keep={}; Object.keys(S.clientes).forEach(c=>{const f=ficha(c); if(f) keep[c]=f;}); N.f=keep; N.meta.parcial=true;
+    msg=saveN()?'La nómina completa no entra en este navegador: quedó guardada solo para los clientes del listado.':'No se pudo guardar la nómina en este navegador. Vale mientras no cierres la pestaña.'; }
+  S.imports.unshift({fecha:hoy(),archivo:p.archivo,tipo:'nomina',total:p.nom.total,conObs:p.nom.conObs}); save(); recalc(); toast(msg); if(hasData()) tab='cobranza'; render(); }
+function diffHTML(p){ const d=p.diff, sum=a=>a.reduce((s,x)=>s+(x.imp??x.r.imp),0);
+  return `<div class="panel" style="padding:16px"><b>${esc(p.archivo)}</b> · ${d.total} comprobantes leídos
+   <div class="kpis" style="margin-top:12px">
+    <div class="kpi panel"><div class="l">Nuevos</div><div class="v">${d.nuevos.length}</div><div class="l">${fmt(sum(d.nuevos))}${d.clientesNuevos?` · ${d.clientesNuevos} clientes nuevos`:''}</div></div>
+    <div class="kpi panel"><div class="l">Importe cambiado</div><div class="v">${d.cambiados.length}</div><div class="l">pagos parciales o ajustes</div></div>
+    <div class="kpi panel"><div class="l">Ya no vienen (saldados)</div><div class="v">${d.saldados.length}</div><div class="l">${fmt(sum(d.saldados))} · probablemente cobrados o imputados</div></div>
+    <div class="kpi panel"><div class="l">Sin cambios</div><div class="v">${d.iguales}</div></div></div>
+   ${d.saldados.length?`<details><summary class="small">Ver comprobantes que salen del listado</summary><ul class="list small" style="margin-top:6px">${d.saldados.slice(0,40).map(c=>`<li><span>${esc((S.clientes[c.cli]||{}).nombre||c.cli)} · ${c.tipo} ${c.nro}</span><span>${fmt2(c.imp)}</span></li>`).join('')}${d.saldados.length>40?`<li class="mute">y ${d.saldados.length-40} más</li>`:''}</ul></details>`:''}
+   ${eventosHTML(p)}
+   <div class="row" style="margin-top:14px"><button class="btn pri" id="okImp">Aplicar actualización</button><button class="btn" id="cxImp">Cancelar</button></div></div>`; }
+function eventosHTML(p){ if(!p.res||p.res.primera) return '<div class="note" style="margin-top:12px">Primera carga: se crean todas las cuentas desde cero.</div>';
+  const ev=p.res.ev, nom=c=>esc((S.clientes[c]||{}).nombre||c);
+  const blk=(arr,tit,desc,cls)=>`<div class="panel" style="padding:12px 14px"><div class="row" style="justify-content:space-between"><b>${tit}</b><span class="tag ${cls}">${arr.length}</span></div><div class="small mute">${desc}</div>
+    ${arr.length?`<details style="margin-top:6px"><summary class="small">Ver clientes</summary><ul class="list small">${arr.slice(0,60).map(c=>`<li>${nom(c)}<span class="mute">${esc(c)}</span></li>`).join('')}${arr.length>60?`<li class="mute">y ${arr.length-60} más</li>`:''}</ul></details>`:''}</div>`;
+  return `<h3 style="margin:16px 0 8px;font-size:15px">Qué cambia por cliente</h3><div class="grid2">
+   ${blk(ev.depResueltas,'Depuración resuelta','Ya no traen comprobantes viejos ni créditos pendientes. Pasan solos a Resueltos.','ok')}
+   ${blk(ev.canceladas,'Cuentas canceladas','No les quedan facturas del período. Su estado pasa a Cancelado y se cierra la promesa.','ok')}
+   ${blk(ev.depParciales,'Depuración parcial','Salieron algunos comprobantes viejos pero todavía quedan otros.','info')}
+   ${blk(ev.nuevasDep,'Nuevos casos para depurar','Clientes que antes estaban limpios y ahora tienen algo para revisar.','warn')}
+   ${blk(ev.marcadosQueSiguen,'Marcados como resueltos que siguen en el Excel','Se marcaron a mano pero el sistema todavía los trae. Conviene revisar el ajuste.','bad')}
+   ${blk(ev.reactivadas,'Vuelven a tener deuda','Estaban canceladas y entraron facturas nuevas. Vuelven a Sin gestionar.','warn')}</div>
+   <div class="small mute" style="margin-top:8px">${ev.conCambios.length} clientes con movimientos: cada uno recibe una nota automática en su historial con lo que entró y salió.</div>`; }
+async function leer(file){
+  try{ if(typeof XLSX==='undefined') throw new Error('No cargó la librería de Excel. Revisá la conexión.');
+    $('#diff').innerHTML=`<div class="panel" style="padding:14px">Leyendo ${esc(file.name)}… <span class="mute">la nómina completa puede tardar unos segundos.</span></div>`;
+    const buf=new Uint8Array(await file.arrayBuffer()); await new Promise(r=>setTimeout(r,40));
+    const aoa=leerHoja(XLSX,buf), tipo=tipoArchivo(aoa);
+    if(tipo==='nomina'){ const nom=parseNomina(aoa,XLSX.SSF); if(!nom.total) throw new Error('No se encontraron clientes con COD_CLIENT.');
+      ui.pend={tipo:'nomina',archivo:file.name,nom,res:resumenNomina(S,nom.fichas,N.f,hoy())}; }
+    else if(tipo==='cobranzas'){ const rows=parseCobranzas(XLSX,aoa); if(!rows.length) throw new Error('No se encontraron filas con COD_CLI.');
+      ui.pend={tipo:'cobranzas',rows,archivo:file.name,res:procesarImport(S,rows,file.name,hoy())}; ui.pend.diff=ui.pend.res.diff; }
+    else throw new Error('No reconozco este archivo. El listado de cobranzas trae las columnas COD_CLI y FECHA_EMI; la nómina de clientes, COD_CLIENT y RAZON_SOCI.');
+    vImportar();
+  }catch(e){ $('#diff').innerHTML=`<div class="panel" style="padding:14px;border-color:var(--rojo)"><b>No se pudo leer el archivo.</b> ${esc(e.message)}</div>`; }
+}
+function confirmarImport(){ const p=ui.pend, d=p.diff, ev=p.res.ev; if(S.imports.length!==p.res.T.imports.length-1){ toast('Los datos cambiaron mientras tanto: volvé a subir el archivo.'); ui.pend=null; vImportar(); return; } S=p.res.T; ui.pend=null; guardarDatos(); recalc(); toast(`Listo: ${d.nuevos.length} nuevos, ${d.saldados.length} saldados, ${ev.depResueltas.length} depuraciones resueltas`); tab='resumen'; render(); }
+
+// ---------- AJUSTES ----------
+function vAjustes(){
+  const c=S.config, m=$('#main'); if(!FB.admin){ m.innerHTML='<div class="empty">Los ajustes los maneja el administrador.</div>'; return; }
+  const U=FB.usuarios||{}, uk=Object.keys(U).sort((a,b)=>String(U[a].nombre||'').localeCompare(String(U[b].nombre||''),'es')), yo=emailKey(FB.user.email);
+  m.innerHTML=`<h2>Ajustes</h2><p class="sub">Días del semáforo, tolerancia de las promesas de pago y texto de los mensajes. El período a cobrar se elige arriba, en la barra, y vale para todo el equipo. La condición de pago se cambia cliente por cliente, en su ficha.</p>
+  <div class="panel" style="padding:16px;max-width:980px"><div class="formgrid">
+   <label class="f">Amarillo desde (días vencido)<input type="number" min="1" data-k="sa" value="${c.sa}"></label>
+   <label class="f">Rojo desde (días vencido)<input type="number" min="1" data-k="sr" value="${c.sr}"></label>
+   <label class="f">Alerta de promesa a los (días de vencida)<input type="number" min="1" data-k="promDias" value="${c.promDias}"></label>
+   <label class="f">Residuo menor a ($)<input type="number" data-k="residuo" value="${c.residuo}"></label>
+   <label class="f">Empresa (para los mensajes)<input type="text" data-k="empresa" value="${esc(c.empresa)}"></label>
+   <label class="f">Abrir WhatsApp con<select data-k="waModo">${[['wame','Automático (enlace wa.me)'],['web','WhatsApp Web (misma pestaña)'],['app','WhatsApp instalado en esta PC']].map(([k,v])=>`<option value="${k}" ${(c.waModo||'wame')===k?'selected':''}>${v}</option>`).join('')}</select></label></div>
+   <label class="f" style="margin-bottom:10px">Texto al pie de todos los mensajes (opcional: alias o CBU para transferir, horario, teléfono de contacto)<textarea rows="2" data-k="pie" placeholder="Ej.: Podés transferir al alias EMPRESA.PAGOS y mandarnos el comprobante por este medio.">${esc(c.pie||'')}</textarea></label>
+   <div class="note">Semáforo: verde si está al día o con menos de ${c.sa} días vencido · amarillo de ${c.sa} a ${c.sr-1} · rojo desde ${c.sr}. El color lo define el comprobante más atrasado de cada cliente. Los vencimientos son los del archivo de Tango, salvo en los clientes a los que les cambiaste la condición de pago en la ficha. Una promesa de pago pasa a alerta cuando ${c.promDias===1?'pasó 1 día':'pasaron '+c.promDias+' días'} de la fecha prometida.</div></div>
+  <h2 style="margin-top:24px;font-size:17px">Usuarios</h2>
+  <p class="sub">Primero se crea el usuario en Firebase (Authentication → Usuarios) con su mail y contraseña. Después se habilita acá con el mismo mail, el nombre que va a figurar en las gestiones y los mensajes, y su permiso.</p>
+  <div class="panel tblwrap" id="usrPanel" style="max-width:980px"><table><thead><tr><th>Mail</th><th>Nombre</th><th>Permiso</th><th></th></tr></thead><tbody id="utb">
+   ${uk.map(k=>{ const u=U[k], fijo=k===emailKey(ADMIN_EMAIL); return `<tr data-uk="${esc(k)}"><td>${esc(u.email||k.replace(/,/g,'.'))}</td><td><input type="text" data-uf="nombre" value="${esc(u.nombre||'')}" aria-label="Nombre" style="min-width:160px"></td>
+    <td><select data-uf="rol" aria-label="Permiso" ${fijo||k===yo?'disabled':''}><option value="cobranzas" ${u.rol!=='admin'?'selected':''}>Cobranzas</option><option value="admin" ${u.rol==='admin'?'selected':''}>Administrador</option></select></td>
+    <td>${fijo||k===yo?'':'<button class="btn sm" data-udel="1">Quitar acceso</button>'}</td></tr>`}).join('')}
+   <tr><td><input type="email" id="nuMail" placeholder="mail del usuario" aria-label="Mail del usuario nuevo" style="min-width:220px"></td><td><input type="text" id="nuNom" placeholder="Nombre" aria-label="Nombre del usuario nuevo" style="min-width:160px"></td>
+    <td><select id="nuRol" aria-label="Permiso del usuario nuevo"><option value="cobranzas">Cobranzas</option><option value="admin">Administrador</option></select></td><td><button class="btn pri sm" id="nuAdd">Habilitar</button></td></tr></tbody></table></div>
+  <div class="small mute" style="max-width:980px;margin-top:6px">Cobranzas: gestiona clientes, manda mensajes e importa los archivos. Administrador: además cambia estos ajustes, el período, los usuarios y puede subir un respaldo.</div>
+  <div class="panel" style="padding:16px;max-width:980px;margin-top:16px"><div class="note">Los datos se guardan en Firebase y los ve todo el equipo al instante. Lo que se carga a mano de cada cliente (gestiones, promesas, celular, responsable, condición de pago, acuerdos) queda aparte: no lo pisan el Excel semanal ni la nómina. Conviene bajar un respaldo cada tanto desde Importar Excel.</div>
+   <div class="row" style="margin-top:14px"><button class="btn" id="borrar" style="color:var(--rojo)">Borrar todos los datos</button></div></div>`;
+  m.querySelectorAll('[data-k]').forEach(i=>i.onchange=()=>{const k=i.dataset.k, val=i.type==='number'?+i.value:i.value;
+    if(['sa','sr','promDias'].includes(k)){ const t=Object.assign({},c,{[k]:val}); if(!(val>=1)||!(t.sa<t.sr)){ toast('Revisá los días: tienen que ser 1 o más, y amarillo menor que rojo.'); vAjustes(); return; } }
+    c[k]=val; save(); recalc(); if(k==='sa'||k==='sr'||k==='promDias') vAjustes(); toast('Guardado');});
+  const uref=k=>FB.db.ref('usuarios/'+k), utb=$('#utb');
+  utb.onchange=e=>{ const tr=e.target.closest('tr[data-uk]'), fl=e.target.dataset.uf; if(!tr||!fl) return; const v=e.target.value.trim(); if(fl==='nombre'&&!v){ toast('El nombre no puede quedar vacío.'); vAjustes(); return; }
+    uref(tr.dataset.uk).child(fl).set(v).then(()=>{ if(fl==='nombre'){ addGestor(v); save(); } toast('Usuario actualizado'); }).catch(err=>toast('No se pudo guardar: '+msgErr(err))); };
+  utb.onclick=e=>{ if(!e.target.closest('[data-udel]')) return; const k=e.target.closest('tr').dataset.uk; if(confirm('¿Quitarle el acceso a '+(U[k].email||k)+'? Deja de poder entrar a la app.')) uref(k).remove().then(()=>toast('Acceso quitado')).catch(err=>toast('No se pudo: '+msgErr(err))); };
+  $('#nuAdd').onclick=()=>{ const em=$('#nuMail').value.trim().toLowerCase(), nom=$('#nuNom').value.trim().replace(/\s+/g,' '); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)||/[$#\[\]\/]/.test(em)){ toast('Revisá el mail.'); return; } if(!nom){ toast('Falta el nombre.'); return; }
+    uref(emailKey(em)).set({email:em,nombre:nom,rol:$('#nuRol').value}).then(()=>{ addGestor(nom); save(); toast('Usuario habilitado: '+nom); }).catch(err=>toast('No se pudo habilitar: '+msgErr(err))); };
+  $('#borrar').onclick=()=>{ if(!confirm('Se borran los comprobantes, las gestiones, las notas y la nómina de clientes PARA TODO EL EQUIPO. Los usuarios no se tocan. ¿Seguir?')) return; if(!confirm('Última confirmación: ¿borrar todos los datos compartidos?')) return;
+    const u=S.config.usuario; FB.ver.data=FB.ver.nom=0; FB.ref.remove().then(()=>{ S=defaultState(); S.config.usuario=u; N={meta:null,f:{}}; snap.gest={}; snap.config=snap.plantillas=snap.imports='null'; recalc(); render(); toast('Datos borrados'); }).catch(err=>toast('No se pudo borrar: '+msgErr(err))); };
+}
+
+// ---------- FICHA CLIENTE ----------
+function openCli(cod,t){ ui.drawer=cod; ui.dtab=t||'gestion'; ui.xform=false; ui.respNew=false; renderDrawer(); $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); }
+function closeCli(){ ui.drawer=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); render(); }
+$('#scrim').onclick=closeCli; document.addEventListener('keydown',e=>{ if(e.key!=='Escape') return; if(ui.mass) cerrarMasivo(false); else if(ui.drawer) closeCli(); });
+// a (opcional): análisis del cliente, para marcar lo vencido según su condición de pago
+function compsTable(items,a){ const vk=a?new Set(a.vencidos.map(i=>i.k)):null, esV=i=>vk?vk.has(i.k):!!(i.vto&&i.vto<hoy()&&i.imp>0), fe=i=>(a&&a.ex[i.k])||i.vto;
+  const tot=items.reduce((s,i)=>s+i.imp,0), ven=items.filter(esV).reduce((s,i)=>s+i.imp,0);
+  return `<div class="panel tblwrap"><table><thead><tr><th>Tipo</th><th>Número</th><th>Emisión</th><th>${a&&a.cond?'Se cobra desde':'Vence'}</th><th class="num">Importe</th><th>Desde</th></tr></thead><tbody>
+  ${items.map(i=>{const v=esV(i);return `<tr><td><span class="tag">${esc(i.tipo)}</span></td><td class="small">${esc(i.nro)}</td><td>${fd(i.emi)}</td><td style="${v?'color:var(--rojo);font-weight:600':''}">${fd(fe(i))}</td>
+  <td class="num ${i.imp<0?'neg':''}">${fmt2(i.imp)}${i.hist&&i.hist.length?`<div class="small mute">antes ${fmt2(i.hist[i.hist.length-1].de)}</div>`:''}</td><td class="small mute">${fd(i.firstSeen)}</td></tr>`}).join('')||'<tr><td colspan="6" class="mute">Sin comprobantes</td></tr>'}</tbody>
+  ${items.length?`<tfoot><tr><td colspan="4">Total · ${items.length} ${items.length===1?'comprobante':'comprobantes'}${ven?`<div class="small" style="color:var(--rojo)">vencido ${fmt2(ven)}${tot-ven>=1?` · <span class="mute">a vencer y créditos ${fmt2(tot-ven)}</span>`:''}</div>`:''}</td><td class="num">${fmt2(tot)}</td><td></td></tr></tfoot>`:''}</table></div>`; }
+function renderDrawer(){
+  const cod=ui.drawer, f=ficha(cod), c=S.clientes[cod]||{nombre:(f&&f.n)||cod}, a=A[cod]||{items:[],nuevos:[],viejos:[],flags:[],sem:'none',deudaNueva:0,vencido:0,aVencer:0,diasMax:0,vencidos:[],noVenc:[],ex:{},cond:null}, g=peekG(cod), t=telWA(cod), d=$('#drawer');
+  const tb=(k,l)=>`<button class="${ui.dtab===k?'on':''}" data-dt="${k}">${l}</button>`;
+  let body='';
+  if(ui.dtab==='gestion'){ const p=prom(cod);
+    body=`${p&&p.est!=='vigente'?`<div class="obs" style="border-color:var(--rojo);margin:0 0 12px"><span class="l">${p.est==='alerta'?'Alerta · promesa de pago incumplida':'Promesa de pago vencida'}</span>Prometió ${p.monto?fmt(p.monto)+' ':''}para el ${fd(p.fecha)} (${haceDias(p.dias)}). Cargá una fecha nueva abajo o cerrala. <button class="btn sm" id="gpx" style="margin-left:6px">Cerrar promesa</button></div>`:''}
+    <div class="panel" style="padding:14px"><div class="formgrid">
+      ${S.config.usuario?'':'<label class="f">Tu nombre (queda en la gestión)<input type="text" id="gq" list="usrL" placeholder="Quién gestiona" autocomplete="off" class="falta"></label>'}
+      <label class="f">Tipo<select id="gt">${TIPOS.map(x=>`<option>${x}</option>`).join('')}</select></label>
+      <label class="f">Estado de la cuenta<select id="ge">${ESTADOS.map(x=>`<option ${g.estado===x?'selected':''}>${x}</option>`).join('')}</select></label>
+      <label class="f">Promesa de pago<input type="date" id="gpf" value="${g.promesa?g.promesa.fecha||'':''}"></label>
+      <label class="f">Monto prometido<input type="number" id="gpm" value="${g.promesa?g.promesa.monto||'':''}" placeholder="$"></label></div>
+      <label class="f">Pegá acá lo que contestó por WhatsApp (o una nota de la llamada)<textarea id="gx" rows="5" placeholder="[1/10 10:32] Juan: Hola, el viernes transfiero la mitad…"></textarea></label>
+      <div class="row" style="margin-top:10px"><button class="btn pri" id="gsave">Guardar gestión</button>${t&&!g.excl&&a.deudaNueva>0?`<button class="btn wa" id="gwa">Enviar recordatorio</button>`:''}</div></div>
+      <div class="timeline">${g.log.slice().reverse().map(e=>`<div class="ev ${e.tipo==='WhatsApp recibido'?'wa-in':e.tipo==='WhatsApp enviado'?'wa-out':e.tipo==='Sistema'?'sys':''}">
+        <div class="meta"><b>${esc(e.tipo)}</b> · ${new Date(e.f).toLocaleString('es-AR',{dateStyle:'short',timeStyle:'short'})}${e.usuario?' · '+esc(e.usuario):''}${e.estado?' · estado: '+esc(e.estado):''}
+        <button class="btn sm" data-del="${e.id}" style="float:right;padding:0 7px" aria-label="Borrar gestión">×</button></div>${e.texto?`<pre>${esc(e.texto)}</pre>`:''}</div>`).join('')||'<div class="mute">Sin gestiones todavía.</div>'}</div>`;
+  } else if(ui.dtab==='nuevos'){ body=`${a.incViejos?'<div class="note" style="margin-bottom:10px">Incluye la deuda anterior al período, que ya se revisó en Depurar.</div>':''}${compsTable(a.nuevos,a)}`;
+  } else if(ui.dtab==='viejos'){ const dp=g.dep||{estado:'Pendiente',nota:''};
+    body=`${a.flags.length?`<div style="margin-bottom:10px">${a.flags.map(x=>`<span class="tag ${FLAGS[x][1]}">${FLAGS[x][0]}</span>`).join('')}</div>`:''}
+    <div class="row" style="margin-bottom:10px"><select id="dpe">${ESTADOS_DEP.map(e=>`<option ${dp.estado===e?'selected':''}>${e}</option>`).join('')}</select><input type="text" id="dpn" value="${esc(dp.nota)}" placeholder="Nota de depuración" style="flex:1"></div>
+    ${dp.cobrar?'<div class="note" style="margin-bottom:10px">La deuda anterior al período de este cliente ya se revisó y se cobra junto con el resto: está en la solapa «A cobrar». <button class="btn sm" id="dpx" style="margin-left:6px">Volver a separarla</button></div>'
+      :a.viejos.some(i=>i.imp>=S.config.residuo)?'<div class="row" style="margin-bottom:10px"><button class="btn" id="dpc">Pasar a cobrar esta deuda</button><span class="small mute">Si ya la revisaste y es deuda real: entra en A cobrar y en el mensaje, junto con el resto.</span></div>':''}
+    ${compsTable(a.viejos)}`;
+  } else { const cands=telCands(cod), IVA={RI:'Responsable inscripto',CF:'Consumidor final',EX:'Exento',RS:'Monotributo'};
+    const dato=(l,v)=>v?`<div><div class="small mute">${l}</div><div>${v}</div></div>`:'';
+    const mail=v=>v?(/^\S+@\S+\.\S+$/.test(v)?`<a href="mailto:${esc(v)}">${esc(v)}</a>`:esc(v)):'';
+    body=`<div class="panel" style="padding:14px"><b>WhatsApp</b>
+      <div class="formgrid" style="margin-top:8px"><label class="f">Celular para WhatsApp (cargado a mano)<input type="text" id="dwa" value="${esc(g.wa||'')}" placeholder="${t?esc(t.ver):'Ej: 264 4123456'}"></label></div>
+      <div class="small ${t&&t.verificar?'':'mute'}">${t?`Se va a usar +${t.wa} · ${esc(t.src||'')}${t.verificar?(t.tipo==='fijo'?' — parece una línea fija: confirmalo o elegí otro número.':' — puede ser un fijo: confirmalo.'):''}`:'No hay un celular válido en el listado ni en la nómina. Cargalo arriba.'}</div>
+      ${cands.length?`<div class="tblwrap" style="margin-top:10px"><table><thead><tr><th>Número</th><th>Tipo</th><th>De dónde sale</th><th></th></tr></thead><tbody>
+        ${cands.map(x=>`<tr><td><b>${esc(x.ver)}</b></td><td><span class="tag ${TELTAG[x.tipo][1]}">${TELTAG[x.tipo][0]}</span></td><td class="small">${esc(x.src)}<div class="mute">${esc(x.raw)}</div></td>
+        <td>${t&&t.wa===x.wa?'<span class="tag ok">en uso</span>':`<button class="btn sm" data-usar="${esc(x.ver)}">Usar</button>`}</td></tr>`).join('')}</tbody></table></div>`:''}
+      <div class="note" style="margin-top:10px">El celular elegido o cargado a mano se guarda aparte: no lo pisan el Excel semanal ni la nómina.</div></div>
+    <div class="panel" style="padding:14px;margin-top:12px"><b>Ficha de la nómina</b>${f&&N.meta?` <span class="small mute">· ${esc(N.meta.archivo)} (${fd(N.meta.fecha)})</span>`:''}
+      ${!hayNomina()?'<div class="note" style="margin-top:8px">Todavía no se cargó la nómina de clientes. Subila desde Importar para ver acá cómo opera cada cliente, más teléfonos, email y CUIT.</div>'
+       :!f?'<div class="note" style="margin-top:8px">Este código no figura en la nómina cargada.</div>'
+       :`<div class="fgrid">${dato('Razón social',esc(f.n))}${dato('Nombre comercial',esc(f.nc))}${dato('CUIT / documento',esc(f.cuit))}${dato('Condición de IVA',IVA[f.iva]||esc(f.iva))}
+         ${dato('Condición de venta',f.cv?'Código '+esc(f.cv):'')}${dato('Email',mail(f.em))}${dato('Contacto',[esc(f.ct),esc(f.cc),esc(f.tc),mail(f.ec)].filter(Boolean).join(' · '))}${dato('Observación del contacto',esc(f.oc))}
+         ${dato('Inhabilitado',f.inh?`<span class="tag bad">desde ${fd(f.inh)}</span>`:'')}</div>
+        ${f.dup?`<div class="small" style="margin-top:12px"><b>Mismo CUIT en otros códigos:</b><ul class="list" style="margin-top:4px">${f.dup.map(x=>{const o=ficha(x)||{}, ax=A[x]; return `<li>${ax?`<a href="#" data-open="${esc(x)}">${esc(x)} · ${esc(o.n||'')}</a>`:`<span>${esc(x)} · ${esc(o.n||'')}</span>`}<span class="mute">${ax?'saldo en el listado '+fmt(ax.saldoTotal):'sin comprobantes en el listado'}</span></li>`}).join('')}</ul></div>`:''}`}
+      <div class="small mute" style="margin-top:12px">${esc(c.dom)} ${esc(c.loc)}${c.prov?' · '+esc(c.prov):''}${c.vend?' · Vendedor '+esc(c.vend):''}</div></div>`; }
+  const obsBox = f&&f.obs ? `<div class="obs"><span class="l">Cómo opera · observaciones de la nómina</span>${esc(f.obs)}</div>`
+    : hayNomina() ? `<div class="small mute" style="margin-top:8px">${f?'Sin observaciones en la nómina.':'Este código no figura en la nómina cargada.'}</div>` : '';
+  const xr=g.excl&&g.excl.rev, xToca=xr&&xr<=hoy();
+  const exclBox = g.excl ? `<div class="obs" style="border-color:var(--azul)"><span class="l">Acuerdo especial · no se gestiona por la vía normal</span>${esc(g.excl.motivo||'Sin motivo cargado')}<span class="small mute"> · desde el ${fd(g.excl.f)}${g.excl.usuario?' · '+esc(g.excl.usuario):''} · ${xr?'fecha de corte '+fd(xr):'sin fecha de corte'}</span>${xToca?' <span class="tag bad">llegó la fecha de corte: revisar</span>':''} <button class="btn sm" id="xoff" style="margin-left:6px">Volver a cobrar</button> <button class="btn sm" id="xver">Editar en Acuerdos especiales</button></div>`
+    : ui.xform ? `<div class="obs" style="border-color:var(--azul)"><span class="l">Pasar a Acuerdos especiales: no se cobra por la vía normal</span><div class="row" style="margin-top:4px;align-items:flex-end"><label class="f" style="flex:1;min-width:220px">Por qué tiene acuerdo y no se gestiona<input type="text" id="xmot" placeholder="Ej.: paga con cheques a 90 días"></label><label class="f">Fecha de corte (opcional)<input type="date" id="xrev" title="Cuándo volver a mirar este acuerdo. Vacía: no se gestiona."></label><button class="btn pri" id="xok">Confirmar</button><button class="btn" id="xcx">Cancelar</button></div></div>` : '';
+  const gc=g.cond&&typeof g.cond==='object'?g.cond:{}, cr=REGLAS[gc.regla]?gc.regla:'vto';
+  d.innerHTML=`<div class="dhead"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h3>${esc(c.nombre)}</h3><div class="cod">Cliente ${esc(cod)} · vendedor ${esc(c.vend)}${f&&f.cuit?' · CUIT '+esc(f.cuit):''}${f&&f.inh?` <span class="tag bad">Inhabilitado desde ${fd(f.inh)}</span>`:''}</div></div><div class="row" style="gap:6px">${!g.excl&&!ui.xform&&A[cod]?'<button class="btn" id="xon">No cobrar (acuerdo especial)</button>':''}<button class="btn" id="dclose">Cerrar</button></div></div>
+   ${exclBox}${obsBox}
+   <div class="row" style="margin-top:10px;gap:18px">${semHTML(a.sem)}<div><div class="small mute">Deuda total</div><b>${fmt2(a.deudaNueva)}</b></div><div><div class="small mute">Vencido</div><b style="color:var(--rojo)">${fmt2(a.vencido)}</b></div><div><div class="small mute">A vencer</div><b>${fmt2(a.aVencer||0)}</b></div><div><div class="small mute">Atraso</div><b>${a.diasMax} días</b></div><div title="Todos los comprobantes del listado: suma también lo anterior al período y resta los créditos sin imputar"><div class="small mute">Saldo total de la cuenta</div><b>${fmt2(a.saldoTotal||0)}</b></div><div>${estadoTag(cod)}</div></div>
+   <div class="hrow">${ui.respNew?`<label>Responsable <input type="text" id="hrespN" placeholder="Nombre y Enter" autocomplete="off" style="width:160px;padding:4px 8px" aria-label="Nombre del responsable"></label><button class="btn sm" id="hrespX">Cancelar</button>`
+     :`<label>Responsable <select id="hresp"><option value="">Sin asignar</option>${gestoresOpts(g.resp||'')}<option value="__otro">Otro nombre…</option></select></label>`}
+    <label>Condición de pago <select id="hcond">${Object.entries(REGLAS).map(([r,t])=>`<option value="${r}" ${cr===r?'selected':''}>${t}</option>`).join('')}</select></label>
+    ${cr==='dias'?`<label><input type="number" id="hdias" min="0" value="${+gc.dias||0}" style="width:70px;padding:4px 8px" aria-label="Días desde la fecha de factura"> días</label>`:cr==='fecha'?`<label><input type="date" id="hfecha" value="${esc(gc.fecha||'')}" style="padding:4px 8px" aria-label="Fecha desde la que se cobra"></label>`:''}
+    <span class="small mute">${REGLA_AYUDA[cr]}</span></div>
+   <nav class="dtabs" id="dtabs">${tb('gestion','Gestiones ('+g.log.length+')')}${tb('nuevos','A cobrar ('+a.nuevos.length+')')}${tb('viejos','Viejos / depurar ('+a.viejos.length+')')}${tb('datos','Contacto')}</nav></div>
+   <div class="dbody">${body}</div>`;
+  const xon=$('#xon'); if(xon) xon.onclick=()=>{ ui.xform=true; renderDrawer(); const i=$('#xmot'); if(i) i.focus(); };
+  const hr=$('#hresp'); if(hr) hr.onchange=e=>{ const v=e.target.value; if(v==='__otro'){ ui.respNew=true; renderDrawer(); const i=$('#hrespN'); if(i) i.focus(); return; }
+    if(v) G(cod).resp=v; else delete G(cod).resp; save(); toast(v?'Responsable: '+v:'Sin responsable'); };
+  const hn=$('#hrespN'); if(hn){ const ok=()=>{ if(!ui.respNew) return; const v=addGestor(hn.value); ui.respNew=false; if(v){ G(cod).resp=v; save(); toast('Responsable: '+v); } renderQuien(); renderDrawer(); };
+    hn.onchange=ok; hn.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); ok(); } else if(e.key==='Escape'){ e.stopPropagation(); ui.respNew=false; renderDrawer(); } }; $('#hrespX').onclick=()=>{ ui.respNew=false; renderDrawer(); }; }
+  const setCond=x=>{ const G_=G(cod); if(x) G_.cond=Object.assign(x,{f:hoy(),usuario:S.config.usuario||''}); else delete G_.cond;
+    if(!x||(!x.nuevo&&(x.regla!=='fecha'||x.fecha))){ const u=G_.log[G_.log.length-1], n={id:Date.now()+'_c',f:ahora(),tipo:'Sistema',texto:'Condición de pago del cliente: '+(x?condTxt(x):'vuelve al vencimiento de Tango')+'.',usuario:S.config.usuario||'',auto:true};
+      if(esNotaCond(u)&&String(u.f).slice(0,10)===n.f.slice(0,10)) G_.log[G_.log.length-1]=n; else G_.log.push(n); }
+    save(); recalc(); renderDrawer(); toast(x&&x.regla==='fecha'&&!x.fecha?'Elegí la fecha desde la que se cobra':'Condición de pago guardada'); const i=$('#hdias')||$('#hfecha'); if(i&&x&&(x.nuevo||x.sigue)) i.focus(); };
+  const hc=$('#hcond'); if(hc) hc.onchange=e=>{ const r=e.target.value; setCond(r==='vto'?null: r==='dias'?{regla:'dias',dias:30,nuevo:1}: r==='fecha'?{regla:'fecha',fecha:'',nuevo:1}:{regla:'mes'}); if(G(cod).cond) delete G(cod).cond.nuevo; };
+  const hd=$('#hdias'); if(hd){ hd.onkeydown=e=>{ ui.paso=e.key==='ArrowUp'||e.key==='ArrowDown'; }; hd.onmousedown=()=>{ ui.paso=true; };
+    hd.onchange=e=>{ const sigue=!!ui.paso; ui.paso=false; setCond({regla:'dias',dias:Math.max(0,Math.round(+e.target.value||0)),sigue}); if(G(cod).cond) delete G(cod).cond.sigue; }; }
+  const hf=$('#hfecha'); if(hf) hf.onchange=e=>setCond({regla:'fecha',fecha:e.target.value});
+  const xv=$('#xver'); if(xv) xv.onclick=()=>{ tab='acuerdos'; ui.acu.f='todos'; closeCli(); };
+  const xok=$('#xok'); if(xok){ const ok=()=>{ setExcl([cod],$('#xmot').value.trim(),$('#xrev').value); ui.xform=false; renderDrawer(); toast('Pasó a Acuerdos especiales'); }; xok.onclick=ok; $('#xmot').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); ok(); } }; $('#xcx').onclick=()=>{ ui.xform=false; renderDrawer(); }; }
+  const xoff=$('#xoff'); if(xoff) xoff.onclick=()=>{ quitarExcl(cod); renderDrawer(); toast('Volvió a A cobrar'); };
+  $('#dclose').onclick=closeCli; $('#dtabs').onclick=e=>{const b=e.target.closest('[data-dt]');if(b){ui.dtab=b.dataset.dt;renderDrawer()}};
+  if(ui.dtab==='gestion'){
+    $('#gsave').onclick=()=>{ const G_=G(cod), tx=$('#gx').value.trim(), es=$('#ge').value, pf=$('#gpf').value, pm=+$('#gpm').value||0;
+      if(!tx && es===G_.estado && pf===(G_.promesa?.fecha||'')){toast('Pegá la conversación o cambiá el estado.');return;}
+      const gq=$('#gq'); if(gq&&gq.value.trim()) setUsuario(gq.value); if(!requireUser()) return;
+      G_.log.push({id:Date.now(),f:ahora(),tipo:$('#gt').value,texto:tx,estado:es!==G_.estado?es:'',usuario:S.config.usuario||''}); asignar(cod);
+      G_.estado=es; G_.promesa=pf?{fecha:pf,monto:pm}:null; save(); toast('Gestión guardada'); renderDrawer(); };
+    const gq0=$('#gq'); if(gq0) gq0.onchange=e=>{ setUsuario(e.target.value); e.target.classList.toggle('falta',!S.config.usuario); };
+    const w=$('#gwa'); if(w) w.onclick=()=>enviarWA(cod);
+    const px=$('#gpx'); if(px) px.onclick=()=>{ const G_=G(cod), pr=G_.promesa; G_.promesa=null; G_.log.push({id:Date.now(),f:ahora(),tipo:'Nota interna',texto:'Se cerró la promesa de pago'+(pr&&pr.fecha?' del '+fd(pr.fecha):'')+'.',usuario:S.config.usuario||'',auto:true}); save(); toast('Promesa cerrada'); renderDrawer(); };
+    d.querySelector('.timeline').onclick=e=>{const b=e.target.closest('[data-del]'); if(b&&confirm('¿Borrar esta gestión?')){const G_=G(cod);G_.log=G_.log.filter(x=>String(x.id)!==b.dataset.del);save();renderDrawer();}};
+  }
+  if(ui.dtab==='viejos'){ const pc=$('#dpc'); if(pc) pc.onclick=()=>{ pasarACobrar(cod); renderDrawer(); toast('Pasó a A cobrar con la deuda anterior incluida'); };
+    const px=$('#dpx'); if(px) px.onclick=()=>{ setDep(cod,'Pendiente'); recalc(); renderDrawer(); toast('La deuda anterior volvió a Depurar'); };
+    $('#dpe').onchange=e=>{setDep(cod,e.target.value);recalc();toast('Estado de depuración guardado')}; $('#dpn').onchange=e=>{G(cod).dep=Object.assign(G(cod).dep||{},{nota:e.target.value});save()}; }
+  if(ui.dtab==='datos'){ $('#dwa').onchange=e=>{const v=e.target.value.trim(); if(v&&!normTel(v)){toast('Ese número no parece válido (10 dígitos con característica).');return;} G(cod).wa=v; save(); renderDrawer(); toast('Celular guardado');};
+    d.querySelectorAll('[data-usar]').forEach(b=>b.onclick=()=>{ G(cod).wa=b.dataset.usar; save(); renderDrawer(); toast('Celular elegido para WhatsApp'); });
+    d.querySelectorAll('.dbody [data-open]').forEach(l=>l.onclick=e=>{ e.preventDefault(); openCli(l.dataset.open,'datos'); }); }
+}
+
+// ---------- DESCARGAS ----------
+let DL=null; (async()=>{ try{ if(window.claude&&window.claude.use) DL=await window.claude.use('downloads'); }catch(e){} })();
+async function descargar(blob,name){
+  if(DL){ try{ await DL.save({filename:name,data:blob}); return; }catch(e){ if(e&&(e.code==='declined'||e.code==='rate_limited'))return; } }
+  const u=URL.createObjectURL(blob), a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+function descargarXLSX(rows,name){ if(!rows.length){toast('No hay filas para exportar.');return;} const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Depuracion');
+  descargar(new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),name); }
+
+iniciarSesion();
+
+</script>
+</body>
+</html>
